@@ -4,7 +4,7 @@ import axios from 'axios';
 // src/client.ts
 
 // package.json
-var version = "1.0.0";
+var version = "1.0.1";
 
 // src/config.ts
 var API_BASE_URL = "https://api.tryportola.com/api/v1";

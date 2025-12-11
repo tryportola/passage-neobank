@@ -1,6 +1,6 @@
 {
   "name": "@portola/passage-neobank",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official Passage SDK for Neobank integrations",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
