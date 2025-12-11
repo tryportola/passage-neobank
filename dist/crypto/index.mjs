@@ -109,15 +109,18 @@ function hybridDecrypt(encryptedPayloadJson, privateKeyPem) {
 var KNOWN_OFFER_FIELDS = /* @__PURE__ */ new Set([
   "apr",
   "interestRate",
-  "termMonths",
+  "term",
   "monthlyPayment",
   "totalRepayment",
   "originationFee",
   "originationFeePercent",
   "prepaymentPenalty",
-  "latePaymentFee"
+  "latePaymentFee",
+  "fees",
+  "offerDetails"
 ]);
 function decryptOfferDetails(encryptedPayload, expectedChecksum, privateKeyPem) {
+  const checksum2 = crypto.createHash("sha256").update(encryptedPayload, "utf8").digest("hex");
   const decrypted = hybridDecrypt(encryptedPayload, privateKeyPem);
   const rawData = JSON.parse(decrypted);
   const additionalFields = {};
@@ -126,19 +129,24 @@ function decryptOfferDetails(encryptedPayload, expectedChecksum, privateKeyPem) 
       additionalFields[key] = rawData[key];
     }
   }
+  const fees = rawData.fees;
+  const offerDetailsField = rawData.offerDetails;
   const data = {
     apr: rawData.apr,
     interestRate: rawData.interestRate,
-    termMonths: rawData.termMonths,
+    term: rawData.term,
     monthlyPayment: rawData.monthlyPayment,
     totalRepayment: rawData.totalRepayment,
+    // Include structured fees and offerDetails from core API
+    fees,
+    offerDetails: offerDetailsField,
+    // Keep deprecated flat fields for backwards compatibility
     originationFee: rawData.originationFee,
     originationFeePercent: rawData.originationFeePercent,
     prepaymentPenalty: rawData.prepaymentPenalty,
     latePaymentFee: rawData.latePaymentFee,
     ...Object.keys(additionalFields).length > 0 && { additionalFields }
   };
-  const checksum2 = crypto.createHash("sha256").update(decrypted).digest("hex");
   return {
     data,
     checksum: checksum2,

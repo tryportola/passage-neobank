@@ -12,7 +12,7 @@ var axios__default = /*#__PURE__*/_interopDefault(axios);
 // src/client.ts
 
 // package.json
-var version = "1.0.1";
+var version = "1.0.3";
 
 // src/config.ts
 var API_BASE_URL = "https://api.tryportola.com/api/v1";

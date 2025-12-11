@@ -23,20 +23,61 @@ export interface EncryptedPIIPayload {
 }
 
 /**
+ * Structured fee information from lender
+ */
+export interface OfferFees {
+  /** One-time origination fee ($) */
+  originationFee?: number;
+  /** Processing/application fee ($) */
+  processingFee?: number;
+  /** Late payment fee ($) */
+  lateFee?: number;
+  /** Prepayment penalty ($) */
+  prepaymentPenalty?: number;
+  /** Origination fee as % of loan */
+  originationFeePercent?: number;
+  /** Prepayment penalty as % */
+  prepaymentPenaltyPercent?: number;
+  /** Additional custom fees */
+  other?: Array<{
+    name: string;
+    amount: number;
+    description?: string;
+    type: 'fixed' | 'percent';
+  }>;
+}
+
+/**
  * Decrypted offer details from a lender
  *
  * Contains standard loan offer fields. Lender-specific fields
  * are available in `additionalFields`.
  */
 export interface DecryptedOfferDetails {
-  apr: string;
+  apr?: string;
   interestRate: string;
-  termMonths: number;
+  term: number;
   monthlyPayment: string;
-  totalRepayment: string;
+  totalRepayment?: string;
+  /** Structured fee breakdown from lender */
+  fees?: OfferFees | null;
+  /** Lender-specific offer metadata */
+  offerDetails?: Record<string, unknown>;
+  /**
+   * @deprecated Use `fees.originationFee` instead. Kept for backwards compatibility.
+   */
   originationFee?: string;
+  /**
+   * @deprecated Use `fees.originationFeePercent` instead. Kept for backwards compatibility.
+   */
   originationFeePercent?: string;
+  /**
+   * @deprecated Use `fees.prepaymentPenalty` instead. Kept for backwards compatibility.
+   */
   prepaymentPenalty?: boolean;
+  /**
+   * @deprecated Use `fees.lateFee` instead. Kept for backwards compatibility.
+   */
   latePaymentFee?: string;
   /**
    * Lender-specific fields that vary by lender.

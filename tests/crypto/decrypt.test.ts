@@ -140,12 +140,14 @@ describe('crypto/decrypt', () => {
     const createEncryptedOffer = (offerData: object) => {
       const plaintext = JSON.stringify(offerData);
       const encrypted = hybridEncrypt(plaintext, testKeyPair.publicKey);
+      const encryptedPayload = JSON.stringify(encrypted);
+      // Checksum is computed on the ENCRYPTED payload (matching lender behavior)
       const expectedChecksum = crypto
         .createHash('sha256')
-        .update(plaintext)
+        .update(encryptedPayload, 'utf8')
         .digest('hex');
       return {
-        encryptedPayload: JSON.stringify(encrypted),
+        encryptedPayload,
         expectedChecksum,
       };
     };
@@ -154,7 +156,7 @@ describe('crypto/decrypt', () => {
       const offerData = {
         apr: '12.99%',
         interestRate: '10.5%',
-        termMonths: 36,
+        term: 36,
         monthlyPayment: '$325.00',
         totalRepayment: '$11,700.00',
       };
@@ -170,13 +172,13 @@ describe('crypto/decrypt', () => {
       expect(result.verified).toBe(true);
       expect(result.data.apr).toBe('12.99%');
       expect(result.data.interestRate).toBe('10.5%');
-      expect(result.data.termMonths).toBe(36);
+      expect(result.data.term).toBe(36);
       expect(result.data.monthlyPayment).toBe('$325.00');
       expect(result.checksum).toBe(expectedChecksum);
     });
 
     it('should return verified=false when checksum does not match', () => {
-      const offerData = { apr: '12.99%', termMonths: 36 };
+      const offerData = { apr: '12.99%', term: 36, interestRate: '10%', monthlyPayment: '$300' };
       const { encryptedPayload } = createEncryptedOffer(offerData);
 
       const wrongChecksum = 'a'.repeat(64);
@@ -195,7 +197,7 @@ describe('crypto/decrypt', () => {
       const offerData = {
         apr: '15.00%',
         interestRate: '12.0%',
-        termMonths: 24,
+        term: 24,
         monthlyPayment: '$450.00',
         totalRepayment: '$10,800.00',
         originationFee: '$200.00',
@@ -225,15 +227,17 @@ describe('crypto/decrypt', () => {
 
   describe('decryptOffers', () => {
     const createMockOffer = (id: string, apr: string) => {
-      const offerData = { apr, termMonths: 36, monthlyPayment: '$300' };
+      const offerData = { apr, term: 36, interestRate: '10%', monthlyPayment: '$300' };
       const plaintext = JSON.stringify(offerData);
       const encrypted = hybridEncrypt(plaintext, testKeyPair.publicKey);
+      const encryptedPayload = JSON.stringify(encrypted);
+      // Checksum is computed on the ENCRYPTED payload (matching lender behavior)
       return {
         offerId: id,
-        encryptedOfferDetailsNeobank: JSON.stringify(encrypted),
+        encryptedOfferDetailsNeobank: encryptedPayload,
         checksumSha256: crypto
           .createHash('sha256')
-          .update(plaintext)
+          .update(encryptedPayload, 'utf8')
           .digest('hex'),
       };
     };

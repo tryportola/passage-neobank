@@ -3,6 +3,7 @@ import type {
   HybridEncryptedPayload,
   DecryptedOfferDetails,
   DecryptionResult,
+  OfferFees,
 } from './types';
 
 /**
@@ -115,13 +116,15 @@ export function hybridDecrypt(
 const KNOWN_OFFER_FIELDS = new Set([
   'apr',
   'interestRate',
-  'termMonths',
+  'term',
   'monthlyPayment',
   'totalRepayment',
   'originationFee',
   'originationFeePercent',
   'prepaymentPenalty',
   'latePaymentFee',
+  'fees',
+  'offerDetails',
 ]);
 
 export function decryptOfferDetails(
@@ -129,6 +132,16 @@ export function decryptOfferDetails(
   expectedChecksum: string,
   privateKeyPem: string
 ): DecryptionResult<DecryptedOfferDetails> {
+  // Calculate checksum of the ENCRYPTED payload (before decryption)
+  // This matches how lenders compute checksums when submitting offers:
+  // - Lender encrypts offer details with neobank's public key
+  // - Lender computes SHA-256 of the encrypted blob
+  // - Neobank verifies the encrypted blob wasn't tampered in transit
+  const checksum = crypto
+    .createHash('sha256')
+    .update(encryptedPayload, 'utf8')
+    .digest('hex');
+
   const decrypted = hybridDecrypt(encryptedPayload, privateKeyPem);
   const rawData = JSON.parse(decrypted) as Record<string, unknown>;
 
@@ -140,21 +153,30 @@ export function decryptOfferDetails(
     }
   }
 
+  // Extract fees - core API sends as OfferFees or null
+  const fees = rawData.fees as OfferFees | null | undefined;
+
+  // Extract offerDetails - lender-specific metadata
+  const offerDetailsField = rawData.offerDetails as
+    | Record<string, unknown>
+    | undefined;
+
   const data: DecryptedOfferDetails = {
-    apr: rawData.apr as string,
+    apr: rawData.apr as string | undefined,
     interestRate: rawData.interestRate as string,
-    termMonths: rawData.termMonths as number,
+    term: rawData.term as number,
     monthlyPayment: rawData.monthlyPayment as string,
-    totalRepayment: rawData.totalRepayment as string,
+    totalRepayment: rawData.totalRepayment as string | undefined,
+    // Include structured fees and offerDetails from core API
+    fees: fees,
+    offerDetails: offerDetailsField,
+    // Keep deprecated flat fields for backwards compatibility
     originationFee: rawData.originationFee as string | undefined,
     originationFeePercent: rawData.originationFeePercent as string | undefined,
     prepaymentPenalty: rawData.prepaymentPenalty as boolean | undefined,
     latePaymentFee: rawData.latePaymentFee as string | undefined,
     ...(Object.keys(additionalFields).length > 0 && { additionalFields }),
   };
-
-  // Calculate checksum of decrypted data
-  const checksum = crypto.createHash('sha256').update(decrypted).digest('hex');
 
   return {
     data,

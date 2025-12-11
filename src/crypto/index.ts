@@ -12,6 +12,7 @@ export type {
   EncryptedPIIPayload,
   DecryptedOfferDetails,
   DecryptionResult,
+  OfferFees,
 } from './types';
 
 export {
