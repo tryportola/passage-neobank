@@ -601,38 +601,6 @@ var LoansResource = class extends BaseResource {
     this.api = api;
   }
   /**
-   * List loans with optional filtering
-   *
-   * @example
-   * ```typescript
-   * // List all active loans
-   * const { loans } = await passage.loans.list({ status: 'ACTIVE' });
-   *
-   * // Paginate through loans
-   * const { loans, pagination } = await passage.loans.list({ limit: 20, offset: 40 });
-   * ```
-   */
-  async list(params) {
-    return this.execute(async () => {
-      this.debug("loans.list", params);
-      const response = await this.api.listLoans({
-        limit: params?.limit,
-        offset: params?.offset,
-        status: params?.status
-      });
-      const data = unwrapResponse(response);
-      return {
-        loans: data.loans,
-        pagination: {
-          total: data.pagination.total,
-          limit: data.pagination.limit,
-          offset: data.pagination.offset,
-          hasMore: data.pagination.total > data.pagination.offset + data.pagination.limit
-        }
-      };
-    }, "loans.list");
-  }
-  /**
    * Get a single loan by ID
    *
    * @example

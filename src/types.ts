@@ -45,8 +45,6 @@ export type {
 // Loan types (Loan is re-exported separately to avoid conflicts)
 export type {
   LoanStatus,
-  LoanListResponse,
-  LoanListResponseData,
   LoanResponse,
   PaymentScheduleResponse,
   PaymentScheduleResponseData,
@@ -177,13 +175,6 @@ export interface FinalOfferAcceptParams {
   hardPullConsent: HardPullConsent;
   borrowerWallet?: BorrowerWallet;
   communicationPreferences?: CommunicationPreferences;
-}
-
-/**
- * Parameters for listing loans
- */
-export interface LoanListParams extends PaginationParams {
-  status?: import('@portola/passage').LoanStatus;
 }
 
 /**

@@ -105,7 +105,6 @@ export type {
 
   // Loans
   LoanStatus,
-  LoanListParams,
   PaymentScheduleItem,
 
   // Lenders

@@ -108,12 +108,6 @@ interface FinalOfferAcceptParams {
     communicationPreferences?: CommunicationPreferences;
 }
 /**
- * Parameters for listing loans
- */
-interface LoanListParams extends PaginationParams {
-    status?: _portola_passage.LoanStatus;
-}
-/**
  * Parameters for listing lenders
  */
 interface LenderListParams {
@@ -376,26 +370,13 @@ declare class OffersResource extends BaseResource {
 
 /**
  * Resource for managing loans
+ *
+ * Note: The list() method is not available to neobanks. Use get() or getByApplication()
+ * to retrieve loans for specific applications.
  */
 declare class LoansResource extends BaseResource {
     private api;
     constructor(api: LoansApi, config: ResolvedConfig);
-    /**
-     * List loans with optional filtering
-     *
-     * @example
-     * ```typescript
-     * // List all active loans
-     * const { loans } = await passage.loans.list({ status: 'ACTIVE' });
-     *
-     * // Paginate through loans
-     * const { loans, pagination } = await passage.loans.list({ limit: 20, offset: 40 });
-     * ```
-     */
-    list(params?: LoanListParams): Promise<{
-        loans: Loan[];
-        pagination: Pagination;
-    }>;
     /**
      * Get a single loan by ID
      *
@@ -896,4 +877,4 @@ declare class Passage {
     get isProduction(): boolean;
 }
 
-export { type AccountInfo, type Application, type ApplicationCreateParams, type ApplicationListParams, type BorrowerWallet, type CommunicationPreferences, type EncryptedPIIPayload, type FinalOfferAcceptParams, type HardPullConsent, type Lender, type LenderListParams, type LenderOffers, type LoanListParams, type Offer, type OffersResponse, type Pagination, type PaginationParams, Passage, type PassageClientConfig, type PaymentScheduleItem, type PrequalAcceptParams, type SDXDocumentType, type SDXDownloadParams, type SDXTokenParams, type SDXUploadParams, type SDXUploadResult, type SDXUploadToken, type SigningSession, type SigningSessionCreateParams, type SigningSessionStatus, type StoreKYCHandleParams, type WebhookConfig, Passage as default };
+export { type AccountInfo, type Application, type ApplicationCreateParams, type ApplicationListParams, type BorrowerWallet, type CommunicationPreferences, type EncryptedPIIPayload, type FinalOfferAcceptParams, type HardPullConsent, type Lender, type LenderListParams, type LenderOffers, type Offer, type OffersResponse, type Pagination, type PaginationParams, Passage, type PassageClientConfig, type PaymentScheduleItem, type PrequalAcceptParams, type SDXDocumentType, type SDXDownloadParams, type SDXTokenParams, type SDXUploadParams, type SDXUploadResult, type SDXUploadToken, type SigningSession, type SigningSessionCreateParams, type SigningSessionStatus, type StoreKYCHandleParams, type WebhookConfig, Passage as default };

@@ -1,17 +1,19 @@
 import type { LoansApi } from '@portola/passage';
 import type {
-  LoanListResponse,
   LoanResponse,
   PaymentScheduleResponse,
   Loan,
 } from '@portola/passage';
 import type { ResolvedConfig } from '../config';
-import type { LoanListParams, PaymentScheduleItem, Pagination } from '../types';
+import type { PaymentScheduleItem } from '../types';
 import { BaseResource, unwrapResponse } from './base';
 import { PassageError } from '../errors';
 
 /**
  * Resource for managing loans
+ *
+ * Note: The list() method is not available to neobanks. Use get() or getByApplication()
+ * to retrieve loans for specific applications.
  */
 export class LoansResource extends BaseResource {
   private api: LoansApi;
@@ -19,47 +21,6 @@ export class LoansResource extends BaseResource {
   constructor(api: LoansApi, config: ResolvedConfig) {
     super(config);
     this.api = api;
-  }
-
-  /**
-   * List loans with optional filtering
-   *
-   * @example
-   * ```typescript
-   * // List all active loans
-   * const { loans } = await passage.loans.list({ status: 'ACTIVE' });
-   *
-   * // Paginate through loans
-   * const { loans, pagination } = await passage.loans.list({ limit: 20, offset: 40 });
-   * ```
-   */
-  async list(params?: LoanListParams): Promise<{
-    loans: Loan[];
-    pagination: Pagination;
-  }> {
-    return this.execute(async () => {
-      this.debug('loans.list', params);
-
-      const response = await this.api.listLoans({
-        limit: params?.limit,
-        offset: params?.offset,
-        status: params?.status,
-      });
-
-      // Response is AxiosResponse<LoanListResponse>
-      // LoanListResponse = { success: boolean, data: { loans: Loan[], pagination: {...} } }
-      const data = unwrapResponse(response);
-
-      return {
-        loans: data.loans,
-        pagination: {
-          total: data.pagination.total,
-          limit: data.pagination.limit,
-          offset: data.pagination.offset,
-          hasMore: data.pagination.total > data.pagination.offset + data.pagination.limit,
-        },
-      };
-    }, 'loans.list');
   }
 
   /**
