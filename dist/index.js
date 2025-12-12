@@ -171,14 +171,25 @@ var TimeoutError = class extends PassageError {
 function createErrorFromResponse(statusCode, body) {
   const message = body.message || body.error || "Unknown error";
   const requestId = body.requestId;
+  const errorCode = body.error || body.code;
   switch (statusCode) {
     case 400:
+      if (body.details && Array.isArray(body.details)) {
+        const fields = {};
+        for (const detail of body.details) {
+          if (!fields[detail.field]) {
+            fields[detail.field] = [];
+          }
+          fields[detail.field].push(detail.message);
+        }
+        return new ValidationError(message, fields, { requestId });
+      }
       if (body.fields) {
         return new ValidationError(message, body.fields, { requestId });
       }
       return new PassageError(message, {
         statusCode: 400,
-        errorCode: body.code || "BAD_REQUEST",
+        errorCode: errorCode || "BAD_REQUEST",
         requestId
       });
     case 401:
@@ -194,7 +205,7 @@ function createErrorFromResponse(statusCode, body) {
     default:
       return new PassageError(message, {
         statusCode,
-        errorCode: body.code || `HTTP_${statusCode}`,
+        errorCode: errorCode || `HTTP_${statusCode}`,
         requestId,
         details: body
       });

@@ -31,7 +31,7 @@ declare function checksum(data: string | Buffer): string;
  * const lenders = await passage.lenders.list({ productType: 'personal', stateCode: 'CA' });
  *
  * const encryptedPayloads = lenders.map(lender =>
- *   encryptPII(lender.id, lender.publicKey, {
+ *   encryptPII(lender.lenderId, lender.publicKey, {
  *     firstName: 'John',
  *     lastName: 'Doe',
  *     ssn: '123-45-6789',
@@ -63,7 +63,7 @@ declare function encryptPII(lenderId: string, lenderPublicKey: string, piiData: 
  * const lenders = await passage.lenders.list({ productType: 'personal', stateCode: 'CA' });
  *
  * const encryptedPayloads = encryptPIIForLenders(
- *   lenders.map(l => ({ lenderId: l.id, publicKey: l.publicKey })),
+ *   lenders.map(l => ({ lenderId: l.lenderId, publicKey: l.publicKey })),
  *   borrowerPII
  * );
  *
