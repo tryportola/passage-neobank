@@ -237,6 +237,15 @@ export class TimeoutError extends PassageError {
 
 /**
  * Create appropriate error from API response
+ *
+ * API returns errors in this format:
+ * {
+ *   error: 'NOT_FOUND' | 'VALIDATION_ERROR' | etc,
+ *   message: 'Human readable message',
+ *   status: 404,
+ *   requestId: 'req_...',
+ *   details?: [{field: 'fieldName', message: 'error'}]  // For validation errors
+ * }
  */
 export function createErrorFromResponse(
   statusCode: number,
@@ -244,21 +253,40 @@ export function createErrorFromResponse(
     error?: string;
     message?: string;
     code?: string;
-    fields?: Record<string, string[]>;
+    status?: number;
     requestId?: string;
+    // API format: array of {field, message}
+    details?: Array<{ field: string; message: string }>;
+    // Legacy SDK format: Record<string, string[]>
+    fields?: Record<string, string[]>;
   }
 ): PassageError {
   const message = body.message || body.error || 'Unknown error';
   const requestId = body.requestId;
+  // API uses 'error' field for error code, SDK used 'code'
+  const errorCode = body.error || body.code;
 
   switch (statusCode) {
     case 400:
+      // Handle validation errors - convert API format to SDK format
+      if (body.details && Array.isArray(body.details)) {
+        // Convert [{field, message}] to {field: [message]}
+        const fields: Record<string, string[]> = {};
+        for (const detail of body.details) {
+          if (!fields[detail.field]) {
+            fields[detail.field] = [];
+          }
+          fields[detail.field].push(detail.message);
+        }
+        return new ValidationError(message, fields, { requestId });
+      }
+      // Legacy format support
       if (body.fields) {
         return new ValidationError(message, body.fields, { requestId });
       }
       return new PassageError(message, {
         statusCode: 400,
-        errorCode: body.code || 'BAD_REQUEST',
+        errorCode: errorCode || 'BAD_REQUEST',
         requestId,
       });
 
@@ -280,7 +308,7 @@ export function createErrorFromResponse(
     default:
       return new PassageError(message, {
         statusCode,
-        errorCode: body.code || `HTTP_${statusCode}`,
+        errorCode: errorCode || `HTTP_${statusCode}`,
         requestId,
         details: body,
       });

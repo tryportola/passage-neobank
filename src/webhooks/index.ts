@@ -7,12 +7,47 @@
 export type {
   WebhookEventType,
   WebhookEvent,
-  ApplicationStatusChangedData,
-  OfferSubmittedData,
+  // Application events
+  ApplicationCreatedData,
+  ApplicationRoutedData,
+  ApplicationApprovedData,
+  ApplicationRejectedData,
+  ApplicationDeclinedData,
+  // Offer events
+  OfferReceivedData,
   OfferAcceptedData,
-  LoanFundedData,
-  LoanRepaymentData,
-  SigningSessionData,
+  OfferRejectedData,
+  PrequalOfferReceivedData,
+  PrequalOfferAcceptedData,
+  FinalOfferReceivedData,
+  FinalOfferRequiredData,
+  FinalOfferAcceptedData,
+  // E-signature events
+  ESignRequiredData,
+  ESignCompletedData,
+  // Signing events
+  SigningReadyData,
+  SigningCompletedData,
+  // KYC events
+  KYCAttestationAvailableData,
+  // Funding events
+  FundingInitiatedData,
+  FundingCompletedData,
+  FundingFailedData,
+  FundingRequiredData,
+  FundingDisbursingData,
+  FundingDisbursedData,
+  FundingDeclinedData,
+  FundingInsufficientBalanceData,
+  // Loan events
+  LoanCreatedData,
+  LoanCreationFailedData,
+  LoanRepaymentAddressReadyData,
+  LoanRepaymentReceivedData,
+  LoanPaidOffData,
+  LoanStatusChangedData,
+  LoanInfrastructureFailedData,
+  // Test event
   TestWebhookData,
 } from './types';
 
