@@ -94,9 +94,11 @@ export type {
   ApplicationRequestProductTypeEnum as ProductType,
   ApplicationRequestEncryptedPayloadsInner as EncryptedPayloadInput,
   ApplicationStatusUpdateResponseData,
+  WalletType,
 
   // Offers
   Offer,
+  OfferType,
   LenderOffers,
   OffersResponse,
   PrequalAcceptParams,

@@ -61,6 +61,16 @@ interface PaginationParams {
  */
 type EncryptedPIIPayload = _portola_passage.ApplicationRequestEncryptedPayloadsInner;
 /**
+ * Alias for ApplicationResponseDataWalletTypeEnum
+ * Indicates the custody model for the borrower's wallet
+ */
+type WalletType = _portola_passage.ApplicationResponseDataWalletTypeEnum;
+/**
+ * Alias for EncryptedOfferOfferTypeEnum
+ * Indicates the type of offer (prequalified or final)
+ */
+type OfferType = _portola_passage.EncryptedOfferOfferTypeEnum;
+/**
  * Alias for OfferAcceptanceRequestBorrowerWallet
  */
 type BorrowerWallet = _portola_passage.OfferAcceptanceRequestBorrowerWallet;
@@ -877,4 +887,4 @@ declare class Passage {
     get isProduction(): boolean;
 }
 
-export { type AccountInfo, type Application, type ApplicationCreateParams, type ApplicationListParams, type BorrowerWallet, type CommunicationPreferences, type EncryptedPIIPayload, type FinalOfferAcceptParams, type HardPullConsent, type Lender, type LenderListParams, type LenderOffers, type Offer, type OffersResponse, type Pagination, type PaginationParams, Passage, type PassageClientConfig, type PaymentScheduleItem, type PrequalAcceptParams, type SDXDocumentType, type SDXDownloadParams, type SDXTokenParams, type SDXUploadParams, type SDXUploadResult, type SDXUploadToken, type SigningSession, type SigningSessionCreateParams, type SigningSessionStatus, type StoreKYCHandleParams, type WebhookConfig, Passage as default };
+export { type AccountInfo, type Application, type ApplicationCreateParams, type ApplicationListParams, type BorrowerWallet, type CommunicationPreferences, type EncryptedPIIPayload, type FinalOfferAcceptParams, type HardPullConsent, type Lender, type LenderListParams, type LenderOffers, type Offer, type OfferType, type OffersResponse, type Pagination, type PaginationParams, Passage, type PassageClientConfig, type PaymentScheduleItem, type PrequalAcceptParams, type SDXDocumentType, type SDXDownloadParams, type SDXTokenParams, type SDXUploadParams, type SDXUploadResult, type SDXUploadToken, type SigningSession, type SigningSessionCreateParams, type SigningSessionStatus, type StoreKYCHandleParams, type WalletType, type WebhookConfig, Passage as default };
