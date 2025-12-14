@@ -30,6 +30,7 @@ export type {
 // Offer types
 export type {
   EncryptedOffer,
+  EncryptedOfferOfferTypeEnum,
   EncryptedOffersResponse,
   EncryptedOffersResponseData,
   EncryptedOffersResponseDataLendersInner,
@@ -121,6 +122,13 @@ export type ProductType =
  */
 export type WalletType =
   import('@portola/passage').ApplicationResponseDataWalletTypeEnum;
+
+/**
+ * Alias for EncryptedOfferOfferTypeEnum
+ * Indicates the type of offer (prequalified or final)
+ */
+export type OfferType =
+  import('@portola/passage').EncryptedOfferOfferTypeEnum;
 
 /**
  * Alias for OfferAcceptanceRequestBorrowerWallet
