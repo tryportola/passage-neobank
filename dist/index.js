@@ -394,7 +394,7 @@ var ApplicationsResource = class extends BaseResource {
    *
    * // Encrypt PII for each lender
    * const encryptedPayloads = encryptPIIForLenders(
-   *   lenders.map(l => ({ lenderId: l.id, publicKey: l.publicKey })),
+   *   lenders.map(l => ({ lenderId: l.lenderId, publicKey: l.publicKey })),
    *   borrowerPII
    * );
    *

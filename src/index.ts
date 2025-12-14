@@ -35,7 +35,7 @@
  * // Get lenders and encrypt PII
  * const lenders = await passage.lenders.list({ productType: 'personal', stateCode: 'CA' });
  * const encryptedPayloads = encryptPIIForLenders(
- *   lenders.map(l => ({ lenderId: l.id, publicKey: l.publicKey })),
+ *   lenders.map(l => ({ lenderId: l.lenderId, publicKey: l.publicKey })),
  *   borrowerPII
  * );
  *
