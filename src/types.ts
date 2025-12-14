@@ -16,6 +16,7 @@ export type {
   ApplicationRequestProductTypeEnum,
   ApplicationResponse,
   ApplicationResponseData,
+  ApplicationResponseDataWalletTypeEnum,
   ApplicationSubmitResponse,
   ApplicationSubmitResponseData,
   ApplicationStatus,
@@ -113,6 +114,13 @@ export type EncryptedPIIPayload =
  */
 export type ProductType =
   import('@portola/passage').ApplicationRequestProductTypeEnum;
+
+/**
+ * Alias for ApplicationResponseDataWalletTypeEnum
+ * Indicates the custody model for the borrower's wallet
+ */
+export type WalletType =
+  import('@portola/passage').ApplicationResponseDataWalletTypeEnum;
 
 /**
  * Alias for OfferAcceptanceRequestBorrowerWallet
