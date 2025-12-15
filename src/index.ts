@@ -112,6 +112,10 @@ export type {
   // Lenders
   Lender,
   LenderListParams,
+  LenderDetail,
+  LenderDetailPublicKey,
+  LenderPublicKeyResponse,
+  LenderPublicKeyResponseData,
 
   // Account
   AccountInfo,
@@ -151,3 +155,19 @@ export type {
 
 // Re-export Loan type directly from SDK to avoid duplicate issues
 export type { Loan } from '@portola/passage';
+
+// Re-export KYC types for neobank consumers (neobank-facing endpoints)
+export type {
+  KYCProvidersResponse,
+  KYCProvidersResponseData,
+  KYCProvidersResponseDataProvidersInner,
+  KYCStatusResponse,
+  KYCStatusResponseData,
+  KYCStatusResponseDataStatusEnum,
+  KYCStatusResponseDataAttestationsInner,
+  KYCInitiateResponse,
+  KYCInitiateResponseData,
+  KYCHandleRequest,
+  KYCHandleResponse,
+  KYCHandleResponseData,
+} from '@portola/passage';

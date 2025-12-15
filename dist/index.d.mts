@@ -1,6 +1,6 @@
 import * as _portola_passage from '@portola/passage';
 import { ApplicationsApi, ApplicationListItem, ApplicationSubmitResponseData, DraftSubmitResponseData, ApplicationStatus, ApplicationStatusUpdateResponseData, OffersApi, OfferAcceptanceResponseData, LoansApi, Loan, EntityDiscoveryApi, NeobankSelfServiceApi, WebhookTestResponseData, WebhookSecretRotateResponseData, SigningApi, SDXApi } from '@portola/passage';
-export { ApplicationStatus, ApplicationStatusUpdateResponseData, ApplicationRequestEncryptedPayloadsInner as EncryptedPayloadInput, Loan, LoanStatus, OfferAcceptanceResponseData, ApplicationRequestProductTypeEnum as ProductType, WebhookSecretRotateResponseData, WebhookTestResponseData } from '@portola/passage';
+export { ApplicationStatus, ApplicationStatusUpdateResponseData, ApplicationRequestEncryptedPayloadsInner as EncryptedPayloadInput, KYCHandleRequest, KYCHandleResponse, KYCHandleResponseData, KYCInitiateResponse, KYCInitiateResponseData, KYCProvidersResponse, KYCProvidersResponseData, KYCProvidersResponseDataProvidersInner, KYCStatusResponse, KYCStatusResponseData, KYCStatusResponseDataAttestationsInner, KYCStatusResponseDataStatusEnum, LenderDetail, LenderDetailPublicKey, LenderPublicKeyResponse, LenderPublicKeyResponseData, Loan, LoanStatus, OfferAcceptanceResponseData, ApplicationRequestProductTypeEnum as ProductType, WebhookSecretRotateResponseData, WebhookTestResponseData } from '@portola/passage';
 export { A as AuthenticationError, a as AuthorizationError, C as ConflictError, b as NetworkError, N as NotFoundError, P as PassageError, R as RateLimitError, T as TimeoutError, V as ValidationError } from './errors-DgbLNkc1.mjs';
 export { D as DecryptedOfferDetails, a as DecryptionResult, H as HybridEncryptedPayload } from './types-BYrBoKhR.mjs';
 
@@ -547,11 +547,14 @@ interface SigningSession {
     borrowerName?: string;
     completedAt?: string | null;
     documentHandle?: string | null;
+    failedAt?: string | null;
+    failureReason?: string | null;
 }
 /**
  * Signing session status enum
+ * Matches Prisma SigningStatus and OpenAPI status enum
  */
-type SigningSessionStatus = 'PENDING' | 'ACTIVE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'EXPIRED' | 'CANCELLED';
+type SigningSessionStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'EXPIRED' | 'CANCELLED';
 /**
  * Parameters for creating a signing session
  */

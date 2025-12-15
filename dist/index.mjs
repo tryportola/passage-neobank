@@ -886,7 +886,9 @@ var SigningResource = class extends BaseResource {
         borrowerEmail: data.borrowerEmail,
         borrowerName: data.borrowerName,
         completedAt: data.completedAt,
-        documentHandle: data.signedDocHandle
+        documentHandle: data.signedDocHandle,
+        failedAt: data.failedAt,
+        failureReason: data.failureReason
       };
     }, "signing.getStatus");
   }
@@ -915,7 +917,9 @@ var SigningResource = class extends BaseResource {
         borrowerName: session.borrowerName,
         completedAt: session.completedAt,
         expiresAt: session.expiresAt,
-        documentHandle: session.signedDocHandle
+        documentHandle: session.signedDocHandle,
+        failedAt: session.failedAt,
+        failureReason: session.failureReason
       }));
     }, "signing.list");
   }

@@ -20,15 +20,17 @@ export interface SigningSession {
   borrowerName?: string;
   completedAt?: string | null;
   documentHandle?: string | null;
+  failedAt?: string | null;
+  failureReason?: string | null;
 }
 
 /**
  * Signing session status enum
+ * Matches Prisma SigningStatus and OpenAPI status enum
  */
 export type SigningSessionStatus =
   | 'PENDING'
   | 'ACTIVE'
-  | 'IN_PROGRESS'
   | 'COMPLETED'
   | 'FAILED'
   | 'EXPIRED'
@@ -128,6 +130,8 @@ export class SigningResource extends BaseResource {
         borrowerName: data.borrowerName,
         completedAt: data.completedAt,
         documentHandle: data.signedDocHandle,
+        failedAt: data.failedAt,
+        failureReason: data.failureReason,
       };
     }, 'signing.getStatus');
   }
@@ -161,6 +165,8 @@ export class SigningResource extends BaseResource {
         completedAt: session.completedAt,
         expiresAt: session.expiresAt,
         documentHandle: session.signedDocHandle,
+        failedAt: session.failedAt,
+        failureReason: session.failureReason,
       }));
     }, 'signing.list');
   }

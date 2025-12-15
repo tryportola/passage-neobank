@@ -60,6 +60,10 @@ export type {
   LenderListItem,
   LenderDetailResponse,
   LenderDetailResponseData,
+  LenderDetail,
+  LenderDetailPublicKey,
+  LenderPublicKeyResponse,
+  LenderPublicKeyResponseData,
 } from '@portola/passage';
 
 // Draft submission types
