@@ -187,6 +187,9 @@ function createErrorFromResponse(statusCode, body) {
       if (body.fields) {
         return new ValidationError(message, body.fields, { requestId });
       }
+      if (errorCode === "VALIDATION_ERROR") {
+        return new ValidationError(message, void 0, { requestId });
+      }
       return new PassageError(message, {
         statusCode: 400,
         errorCode: errorCode || "BAD_REQUEST",
