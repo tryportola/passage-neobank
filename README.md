@@ -1,6 +1,6 @@
 # @portola/passage-neobank
 
-Official TypeScript SDK client for Passage - the Loan GDS platform.
+Official Passage SDK for Neobank integrations - the recommended way to integrate with Passage.
 
 ## Installation
 
@@ -8,6 +8,8 @@ Official TypeScript SDK client for Passage - the Loan GDS platform.
 npm install @portola/passage-neobank
 # @portola/passage is automatically installed as a peer dependency
 ```
+
+**Requirements:** Node.js 18+
 
 ## Quick Start
 
@@ -237,6 +239,49 @@ try {
   }
 }
 ```
+
+## Environments
+
+The SDK auto-detects your environment from the API key prefix:
+
+| API Key Prefix | Environment | Blockchain | Behavior |
+|----------------|-------------|------------|----------|
+| `nb_test_*` | Sandbox | Base Sepolia | Mock lenders, auto-signing, TestUSDC |
+| `nb_live_*` | Production | Base Mainnet | Real lenders, HelloSign, real USDC |
+
+```typescript
+const passage = new Passage({
+  apiKey: process.env.NEOBANK_API_KEY!, // Environment auto-detected
+});
+
+console.log(passage.isSandbox);    // true for nb_test_*
+console.log(passage.isProduction); // true for nb_live_*
+```
+
+## Webhook Events
+
+| Event | Description |
+|-------|-------------|
+| `application.status.changed` | Application status updated |
+| `prequal_offer.received` | New prequalified offers available |
+| `final_offer.received` | Final offer ready after hard pull |
+| `signing.session_created` | Document signing session ready |
+| `signing.completed` | Borrower completed signing |
+| `funding.disbursed` | Loan funds sent to borrower wallet |
+| `loan.status.changed` | Loan status updated |
+
+## Documentation
+
+For complete documentation, guides, and examples:
+
+- **Documentation:** [docs.tryportola.com](https://docs.tryportola.com)
+- **Quickstart:** [docs.tryportola.com/quickstart](https://docs.tryportola.com/quickstart)
+- **API Reference:** [docs.tryportola.com/api-reference](https://docs.tryportola.com/api-reference)
+- **Developer Portal:** [dashboard.tryportola.com](https://dashboard.tryportola.com)
+
+## Related Packages
+
+- [`@portola/passage`](https://www.npmjs.com/package/@portola/passage) - Low-level API client for advanced use cases
 
 ## License
 
