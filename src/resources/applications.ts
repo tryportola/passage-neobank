@@ -16,7 +16,7 @@ import type {
   ApplicationCreateParams,
   Pagination,
 } from '../types';
-import { BaseResource, unwrapResponse, unwrapPaginatedResponse } from './base';
+import { BaseResource, unwrapResponse } from './base';
 
 /**
  * Resource for managing loan applications
@@ -62,15 +62,18 @@ export class ApplicationsResource extends BaseResource {
         offset: params?.offset,
         status: params?.status,
         productType: params?.productType,
+        externalId: params?.externalId,
+        borrowerWalletAddress: params?.borrowerWalletAddress,
       });
 
       // Response is AxiosResponse<ListApplications200Response>
       // ListApplications200Response = { success: boolean, data: { applications: ApplicationListItem[] } }
-      const { data, pagination } = unwrapPaginatedResponse(response);
+      // Pagination is inside data per OpenAPI spec (if present)
+      const data = unwrapResponse(response) as typeof response.data.data & { pagination?: Pagination };
 
       return {
         applications: data.applications,
-        pagination: pagination ?? {
+        pagination: data.pagination ?? {
           total: data.applications.length,
           limit: params?.limit ?? 20,
           offset: params?.offset ?? 0,
@@ -126,14 +129,17 @@ export class ApplicationsResource extends BaseResource {
    */
   async create(params: ApplicationCreateParams): Promise<ApplicationSubmitResponseData> {
     return this.execute(async () => {
-      this.debug('applications.create', { productType: params.productType });
+      this.debug('applications.create', { productType: params.productType, externalId: params.externalId });
 
       const response = await this.api.submitApplication({
         applicationRequest: {
           productType: params.productType,
           encryptedPayloads: params.encryptedPayloads,
+          externalId: params.externalId,
           metadata: params.metadata,
           draft: params.draft,
+          borrowerWalletAddress: params.borrowerWalletAddress,
+          borrowerWalletChain: params.borrowerWalletChain,
         },
       });
 

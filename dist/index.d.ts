@@ -1,5 +1,5 @@
 import * as _portola_passage from '@portola/passage';
-import { ApplicationsApi, ApplicationListItem, ApplicationSubmitResponseData, DraftSubmitResponseData, ApplicationStatus, ApplicationStatusUpdateResponseData, OffersApi, OfferAcceptanceResponseData, LoansApi, Loan, EntityDiscoveryApi, NeobankSelfServiceApi, WebhookTestResponseData, WebhookSecretRotateResponseData, SigningApi, SDXApi } from '@portola/passage';
+import { ApplicationsApi, ApplicationListItem, ApplicationSubmitResponseData, DraftSubmitResponseData, ApplicationStatus, ApplicationStatusUpdateResponseData, OffersApi, OfferAcceptanceResponseData, LoansApi, Loan, RepaymentStatus, EntityDiscoveryApi, NeobankSelfServiceApi, WebhookTestResponseData, WebhookSecretRotateResponseData, SigningApi, SDXApi } from '@portola/passage';
 export { ApplicationStatus, ApplicationStatusUpdateResponseData, ApplicationRequestEncryptedPayloadsInner as EncryptedPayloadInput, KYCHandleRequest, KYCHandleResponse, KYCHandleResponseData, KYCInitiateResponse, KYCInitiateResponseData, KYCProvidersResponse, KYCProvidersResponseData, KYCProvidersResponseDataProvidersInner, KYCStatusResponse, KYCStatusResponseData, KYCStatusResponseDataAttestationsInner, KYCStatusResponseDataStatusEnum, LenderDetail, LenderDetailPublicKey, LenderPublicKeyResponse, LenderPublicKeyResponseData, Loan, LoanStatus, OfferAcceptanceResponseData, ApplicationRequestProductTypeEnum as ProductType, WebhookSecretRotateResponseData, WebhookTestResponseData } from '@portola/passage';
 export { A as AuthenticationError, a as AuthorizationError, C as ConflictError, b as NetworkError, N as NotFoundError, P as PassageError, R as RateLimitError, T as TimeoutError, V as ValidationError } from './errors-DgbLNkc1.js';
 export { D as DecryptedOfferDetails, a as DecryptionResult, H as HybridEncryptedPayload } from './types-BYrBoKhR.js';
@@ -92,6 +92,10 @@ type PaymentScheduleItem = _portola_passage.ScheduledPayment;
 interface ApplicationListParams extends PaginationParams {
     status?: _portola_passage.ApplicationStatus;
     productType?: _portola_passage.ApplicationRequestProductTypeEnum;
+    /** Filter by your external reference ID (exact match) */
+    externalId?: string;
+    /** Filter by borrower's wallet address (case-insensitive) */
+    borrowerWalletAddress?: string;
 }
 /**
  * Parameters for creating a new application
@@ -99,8 +103,14 @@ interface ApplicationListParams extends PaginationParams {
 interface ApplicationCreateParams {
     productType: _portola_passage.ApplicationRequestProductTypeEnum;
     encryptedPayloads: EncryptedPIIPayload[];
+    /** Your external reference ID (e.g., user ID in your system) */
+    externalId?: string;
     metadata?: Record<string, unknown>;
     draft?: boolean;
+    /** Borrower's wallet address for disbursement (optional - for wallet-first apps) */
+    borrowerWalletAddress?: string;
+    /** Blockchain chain for borrower's wallet (default: 'base') */
+    borrowerWalletChain?: 'base' | 'ethereum' | 'polygon' | 'arbitrum' | 'optimism' | 'solana';
 }
 /**
  * Parameters for accepting a prequalified offer
@@ -123,6 +133,17 @@ interface FinalOfferAcceptParams {
 interface LenderListParams {
     productType?: string;
     stateCode?: string;
+}
+/**
+ * Parameters for listing loans
+ */
+interface LoanListParams extends PaginationParams {
+    /** Filter by loan status */
+    status?: 'active' | 'paid_off' | 'delinquent' | 'defaulted' | 'closed' | 'all';
+    /** Filter by application's external reference ID (joins through application) */
+    externalId?: string;
+    /** Filter by borrower's wallet address (case-insensitive) */
+    borrowerAddress?: string;
 }
 /**
  * Application data returned from the API (unwrapped from envelope)
@@ -152,6 +173,48 @@ type WebhookConfig = _portola_passage.WebhookConfigResponseData;
  * Lender info from discovery list
  */
 type Lender = _portola_passage.LenderListItem;
+/**
+ * Account statistics response
+ */
+interface NeobankStats {
+    applications: {
+        total: number;
+        byStatus: Record<string, number>;
+    };
+    loans: {
+        total: number;
+        active: number;
+        paidOff: number;
+        totalDisbursed: string;
+        outstandingPrincipal: string;
+    };
+    borrowers: {
+        total: number;
+    };
+    asOf: string;
+}
+/**
+ * Repayment data from a loan
+ */
+interface Repayment {
+    id: string;
+    loanId: string;
+    bridgeDrainId?: string | null;
+    amount: string;
+    currency: string;
+    sourceAddress?: string | null;
+    sourceChain?: string | null;
+    depositTxHash?: string | null;
+    destinationTxHash?: string | null;
+    principalPortion?: string | null;
+    interestPortion?: string | null;
+    balanceBefore?: string | null;
+    balanceAfter?: string | null;
+    receivedAt: string;
+    completedAt?: string | null;
+    status: string;
+    createdAt: string;
+}
 
 /**
  * Base class for all resource clients
@@ -381,12 +444,53 @@ declare class OffersResource extends BaseResource {
 /**
  * Resource for managing loans
  *
- * Note: The list() method is not available to neobanks. Use get() or getByApplication()
- * to retrieve loans for specific applications.
+ * Supports listing loans (with filters), getting loan details, and viewing repayments.
  */
 declare class LoansResource extends BaseResource {
     private api;
     constructor(api: LoansApi, config: ResolvedConfig);
+    /**
+     * List loans with optional filtering
+     *
+     * @example
+     * ```typescript
+     * // List all loans
+     * const { loans, pagination } = await passage.loans.list();
+     *
+     * // Filter by external user ID
+     * const { loans } = await passage.loans.list({ externalId: 'user_123' });
+     *
+     * // Filter by borrower wallet
+     * const { loans } = await passage.loans.list({ borrowerAddress: '0x...' });
+     *
+     * // Filter by status
+     * const { loans } = await passage.loans.list({ status: 'active' });
+     * ```
+     */
+    list(params?: LoanListParams): Promise<{
+        loans: Loan[];
+        pagination: Pagination;
+    }>;
+    /**
+     * List repayments for a loan
+     *
+     * @example
+     * ```typescript
+     * const { repayments, pagination } = await passage.loans.getRepayments('loan_123');
+     *
+     * for (const repayment of repayments) {
+     *   console.log(`Received ${repayment.amount} on ${repayment.receivedAt}`);
+     * }
+     * ```
+     */
+    getRepayments(loanId: string, params?: {
+        limit?: number;
+        offset?: number;
+        status?: RepaymentStatus;
+    }): Promise<{
+        repayments: Repayment[];
+        pagination: Pagination;
+    }>;
     /**
      * Get a single loan by ID
      *
@@ -474,6 +578,21 @@ declare class AccountResource extends BaseResource {
      * ```
      */
     getInfo(): Promise<AccountInfo>;
+    /**
+     * Get aggregated statistics for your neobank account
+     *
+     * Returns application counts by status, loan statistics, and borrower counts.
+     *
+     * @example
+     * ```typescript
+     * const stats = await passage.account.getStats();
+     * console.log(`Total applications: ${stats.applications.total}`);
+     * console.log(`Active loans: ${stats.loans.active}`);
+     * console.log(`Total disbursed: ${stats.loans.totalDisbursed}`);
+     * console.log(`Unique borrowers: ${stats.borrowers.total}`);
+     * ```
+     */
+    getStats(): Promise<NeobankStats>;
     /**
      * Get webhook configuration
      *

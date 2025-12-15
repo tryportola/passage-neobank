@@ -12,6 +12,7 @@ import type {
   WebhookConfig,
   WebhookTestResponseData,
   WebhookSecretRotateResponseData,
+  NeobankStats,
 } from '../types';
 import { BaseResource, unwrapResponse } from './base';
 
@@ -45,6 +46,31 @@ export class AccountResource extends BaseResource {
       // NeobankAccountResponse = { success: boolean, data: NeobankAccountResponseData }
       return unwrapResponse(response);
     }, 'account.getInfo');
+  }
+
+  /**
+   * Get aggregated statistics for your neobank account
+   *
+   * Returns application counts by status, loan statistics, and borrower counts.
+   *
+   * @example
+   * ```typescript
+   * const stats = await passage.account.getStats();
+   * console.log(`Total applications: ${stats.applications.total}`);
+   * console.log(`Active loans: ${stats.loans.active}`);
+   * console.log(`Total disbursed: ${stats.loans.totalDisbursed}`);
+   * console.log(`Unique borrowers: ${stats.borrowers.total}`);
+   * ```
+   */
+  async getStats(): Promise<NeobankStats> {
+    return this.execute(async () => {
+      this.debug('account.getStats');
+
+      const response = await this.api.getAccountStats();
+      // Response is AxiosResponse<GetAccountStats200Response>
+      const data = unwrapResponse(response);
+      return data as NeobankStats;
+    }, 'account.getStats');
   }
 
   /**

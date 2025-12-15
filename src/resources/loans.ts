@@ -1,19 +1,18 @@
-import type { LoansApi } from '@portola/passage';
+import type { LoansApi, LoanStatus, RepaymentStatus } from '@portola/passage';
 import type {
   LoanResponse,
   PaymentScheduleResponse,
   Loan,
 } from '@portola/passage';
 import type { ResolvedConfig } from '../config';
-import type { PaymentScheduleItem } from '../types';
+import type { PaymentScheduleItem, LoanListParams, Pagination, Repayment } from '../types';
 import { BaseResource, unwrapResponse } from './base';
 import { PassageError } from '../errors';
 
 /**
  * Resource for managing loans
  *
- * Note: The list() method is not available to neobanks. Use get() or getByApplication()
- * to retrieve loans for specific applications.
+ * Supports listing loans (with filters), getting loan details, and viewing repayments.
  */
 export class LoansResource extends BaseResource {
   private api: LoansApi;
@@ -21,6 +20,95 @@ export class LoansResource extends BaseResource {
   constructor(api: LoansApi, config: ResolvedConfig) {
     super(config);
     this.api = api;
+  }
+
+  /**
+   * List loans with optional filtering
+   *
+   * @example
+   * ```typescript
+   * // List all loans
+   * const { loans, pagination } = await passage.loans.list();
+   *
+   * // Filter by external user ID
+   * const { loans } = await passage.loans.list({ externalId: 'user_123' });
+   *
+   * // Filter by borrower wallet
+   * const { loans } = await passage.loans.list({ borrowerAddress: '0x...' });
+   *
+   * // Filter by status
+   * const { loans } = await passage.loans.list({ status: 'active' });
+   * ```
+   */
+  async list(params?: LoanListParams): Promise<{
+    loans: Loan[];
+    pagination: Pagination;
+  }> {
+    return this.execute(async () => {
+      this.debug('loans.list', params);
+
+      const response = await this.api.listLoans({
+        status: params?.status as LoanStatus,
+        externalId: params?.externalId,
+        borrowerAddress: params?.borrowerAddress,
+        limit: params?.limit,
+        offset: params?.offset,
+      });
+
+      // Pagination is inside data per OpenAPI spec
+      const data = unwrapResponse(response);
+
+      return {
+        loans: data.loans,
+        pagination: data.pagination ?? {
+          total: data.loans.length,
+          limit: params?.limit ?? 50,
+          offset: params?.offset ?? 0,
+          hasMore: false,
+        },
+      };
+    }, 'loans.list');
+  }
+
+  /**
+   * List repayments for a loan
+   *
+   * @example
+   * ```typescript
+   * const { repayments, pagination } = await passage.loans.getRepayments('loan_123');
+   *
+   * for (const repayment of repayments) {
+   *   console.log(`Received ${repayment.amount} on ${repayment.receivedAt}`);
+   * }
+   * ```
+   */
+  async getRepayments(
+    loanId: string,
+    params?: { limit?: number; offset?: number; status?: RepaymentStatus }
+  ): Promise<{ repayments: Repayment[]; pagination: Pagination }> {
+    return this.execute(async () => {
+      this.debug('loans.getRepayments', { loanId, ...params });
+
+      const response = await this.api.listLoanRepayments({
+        loanId,
+        limit: params?.limit,
+        offset: params?.offset,
+        status: params?.status,
+      });
+
+      // Pagination is inside data per OpenAPI spec
+      const data = unwrapResponse(response) as typeof response.data.data & { pagination?: Pagination };
+
+      return {
+        repayments: data.repayments as Repayment[],
+        pagination: data.pagination ?? {
+          total: data.repayments.length,
+          limit: params?.limit ?? 50,
+          offset: params?.offset ?? 0,
+          hasMore: false,
+        },
+      };
+    }, 'loans.getRepayments');
   }
 
   /**

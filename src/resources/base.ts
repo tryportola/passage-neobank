@@ -58,11 +58,11 @@ export function unwrapResponse<TResponse extends { success: boolean; data: unkno
 /**
  * Unwrap a paginated API response
  *
- * Note: Pagination info is at the same level as data in the envelope,
- * not nested inside the data object.
+ * Pagination is nested inside data per OpenAPI spec:
+ * { success: true, data: { items: [...], pagination: {...} } }
  */
 export function unwrapPaginatedResponse<TResponse extends { success: boolean; data: unknown }>(
-  response: AxiosResponse<TResponse & { pagination?: Pagination }>
+  response: AxiosResponse<TResponse>
 ): { data: ExtractData<TResponse>; pagination?: Pagination } {
   const envelope = response.data;
 
@@ -74,9 +74,12 @@ export function unwrapPaginatedResponse<TResponse extends { success: boolean; da
     });
   }
 
+  // Pagination is inside data per OpenAPI spec
+  const data = envelope.data as ExtractData<TResponse> & { pagination?: Pagination };
+
   return {
-    data: envelope.data as ExtractData<TResponse>,
-    pagination: envelope.pagination,
+    data: data,
+    pagination: data.pagination,
   };
 }
 

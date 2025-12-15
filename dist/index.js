@@ -12,7 +12,7 @@ var axios__default = /*#__PURE__*/_interopDefault(axios);
 // src/client.ts
 
 // package.json
-var version = "1.0.5";
+var version = "1.1.0";
 
 // src/config.ts
 var API_BASE_URL = "https://api.tryportola.com/api/v1";
@@ -227,20 +227,6 @@ function unwrapResponse(response) {
   }
   return envelope.data;
 }
-function unwrapPaginatedResponse(response) {
-  const envelope = response.data;
-  if (!envelope.success) {
-    const errorEnvelope = envelope;
-    throw new PassageError(errorEnvelope.message || errorEnvelope.error || "Request failed", {
-      errorCode: errorEnvelope.code,
-      requestId: errorEnvelope.requestId
-    });
-  }
-  return {
-    data: envelope.data,
-    pagination: envelope.pagination
-  };
-}
 var BaseResource = class {
   constructor(config) {
     this.config = config;
@@ -355,12 +341,14 @@ var ApplicationsResource = class extends BaseResource {
         limit: params?.limit,
         offset: params?.offset,
         status: params?.status,
-        productType: params?.productType
+        productType: params?.productType,
+        externalId: params?.externalId,
+        borrowerWalletAddress: params?.borrowerWalletAddress
       });
-      const { data, pagination } = unwrapPaginatedResponse(response);
+      const data = unwrapResponse(response);
       return {
         applications: data.applications,
-        pagination: pagination ?? {
+        pagination: data.pagination ?? {
           total: data.applications.length,
           limit: params?.limit ?? 20,
           offset: params?.offset ?? 0,
@@ -411,13 +399,16 @@ var ApplicationsResource = class extends BaseResource {
    */
   async create(params) {
     return this.execute(async () => {
-      this.debug("applications.create", { productType: params.productType });
+      this.debug("applications.create", { productType: params.productType, externalId: params.externalId });
       const response = await this.api.submitApplication({
         applicationRequest: {
           productType: params.productType,
           encryptedPayloads: params.encryptedPayloads,
+          externalId: params.externalId,
           metadata: params.metadata,
-          draft: params.draft
+          draft: params.draft,
+          borrowerWalletAddress: params.borrowerWalletAddress,
+          borrowerWalletChain: params.borrowerWalletChain
         }
       });
       return unwrapResponse(response);
@@ -615,6 +606,79 @@ var LoansResource = class extends BaseResource {
     this.api = api;
   }
   /**
+   * List loans with optional filtering
+   *
+   * @example
+   * ```typescript
+   * // List all loans
+   * const { loans, pagination } = await passage.loans.list();
+   *
+   * // Filter by external user ID
+   * const { loans } = await passage.loans.list({ externalId: 'user_123' });
+   *
+   * // Filter by borrower wallet
+   * const { loans } = await passage.loans.list({ borrowerAddress: '0x...' });
+   *
+   * // Filter by status
+   * const { loans } = await passage.loans.list({ status: 'active' });
+   * ```
+   */
+  async list(params) {
+    return this.execute(async () => {
+      this.debug("loans.list", params);
+      const response = await this.api.listLoans({
+        status: params?.status,
+        externalId: params?.externalId,
+        borrowerAddress: params?.borrowerAddress,
+        limit: params?.limit,
+        offset: params?.offset
+      });
+      const data = unwrapResponse(response);
+      return {
+        loans: data.loans,
+        pagination: data.pagination ?? {
+          total: data.loans.length,
+          limit: params?.limit ?? 50,
+          offset: params?.offset ?? 0,
+          hasMore: false
+        }
+      };
+    }, "loans.list");
+  }
+  /**
+   * List repayments for a loan
+   *
+   * @example
+   * ```typescript
+   * const { repayments, pagination } = await passage.loans.getRepayments('loan_123');
+   *
+   * for (const repayment of repayments) {
+   *   console.log(`Received ${repayment.amount} on ${repayment.receivedAt}`);
+   * }
+   * ```
+   */
+  async getRepayments(loanId, params) {
+    return this.execute(async () => {
+      this.debug("loans.getRepayments", { loanId, ...params });
+      const response = await this.api.listLoanRepayments({
+        loanId,
+        limit: params?.limit,
+        offset: params?.offset,
+        status: params?.status
+      });
+      const data = unwrapResponse(response);
+      return {
+        repayments: data.repayments,
+        pagination: data.pagination ?? {
+          total: data.repayments.length,
+          limit: params?.limit ?? 50,
+          offset: params?.offset ?? 0,
+          hasMore: false
+        }
+      };
+    }, "loans.getRepayments");
+  }
+  /**
    * Get a single loan by ID
    *
    * @example
@@ -742,6 +806,28 @@ var AccountResource = class extends BaseResource {
       const response = await this.api.getAccountInfo();
       return unwrapResponse(response);
     }, "account.getInfo");
+  }
+  /**
+   * Get aggregated statistics for your neobank account
+   *
+   * Returns application counts by status, loan statistics, and borrower counts.
+   *
+   * @example
+   * ```typescript
+   * const stats = await passage.account.getStats();
+   * console.log(`Total applications: ${stats.applications.total}`);
+   * console.log(`Active loans: ${stats.loans.active}`);
+   * console.log(`Total disbursed: ${stats.loans.totalDisbursed}`);
+   * console.log(`Unique borrowers: ${stats.borrowers.total}`);
+   * ```
+   */
+  async getStats() {
+    return this.execute(async () => {
+      this.debug("account.getStats");
+      const response = await this.api.getAccountStats();
+      const data = unwrapResponse(response);
+      return data;
+    }, "account.getStats");
   }
   /**
    * Get webhook configuration

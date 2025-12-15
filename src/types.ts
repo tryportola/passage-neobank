@@ -168,6 +168,10 @@ export type PaymentScheduleItem =
 export interface ApplicationListParams extends PaginationParams {
   status?: import('@portola/passage').ApplicationStatus;
   productType?: import('@portola/passage').ApplicationRequestProductTypeEnum;
+  /** Filter by your external reference ID (exact match) */
+  externalId?: string;
+  /** Filter by borrower's wallet address (case-insensitive) */
+  borrowerWalletAddress?: string;
 }
 
 /**
@@ -176,8 +180,14 @@ export interface ApplicationListParams extends PaginationParams {
 export interface ApplicationCreateParams {
   productType: import('@portola/passage').ApplicationRequestProductTypeEnum;
   encryptedPayloads: EncryptedPIIPayload[];
+  /** Your external reference ID (e.g., user ID in your system) */
+  externalId?: string;
   metadata?: Record<string, unknown>;
   draft?: boolean;
+  /** Borrower's wallet address for disbursement (optional - for wallet-first apps) */
+  borrowerWalletAddress?: string;
+  /** Blockchain chain for borrower's wallet (default: 'base') */
+  borrowerWalletChain?: 'base' | 'ethereum' | 'polygon' | 'arbitrum' | 'optimism' | 'solana';
 }
 
 /**
@@ -203,6 +213,18 @@ export interface FinalOfferAcceptParams {
 export interface LenderListParams {
   productType?: string;
   stateCode?: string;
+}
+
+/**
+ * Parameters for listing loans
+ */
+export interface LoanListParams extends PaginationParams {
+  /** Filter by loan status */
+  status?: 'active' | 'paid_off' | 'delinquent' | 'defaulted' | 'closed' | 'all';
+  /** Filter by application's external reference ID (joins through application) */
+  externalId?: string;
+  /** Filter by borrower's wallet address (case-insensitive) */
+  borrowerAddress?: string;
 }
 
 // ============================================================================
@@ -256,6 +278,50 @@ export type WebhookConfig =
  * Lender info from discovery list
  */
 export type Lender = import('@portola/passage').LenderListItem;
+
+/**
+ * Account statistics response
+ */
+export interface NeobankStats {
+  applications: {
+    total: number;
+    byStatus: Record<string, number>;
+  };
+  loans: {
+    total: number;
+    active: number;
+    paidOff: number;
+    totalDisbursed: string;
+    outstandingPrincipal: string;
+  };
+  borrowers: {
+    total: number;
+  };
+  asOf: string;
+}
+
+/**
+ * Repayment data from a loan
+ */
+export interface Repayment {
+  id: string;
+  loanId: string;
+  bridgeDrainId?: string | null;
+  amount: string;
+  currency: string;
+  sourceAddress?: string | null;
+  sourceChain?: string | null;
+  depositTxHash?: string | null;
+  destinationTxHash?: string | null;
+  principalPortion?: string | null;
+  interestPortion?: string | null;
+  balanceBefore?: string | null;
+  balanceAfter?: string | null;
+  receivedAt: string;
+  completedAt?: string | null;
+  status: string;
+  createdAt: string;
+}
 
 // ============================================================================
 // Encryption/Decryption Types - Re-exported from crypto module
