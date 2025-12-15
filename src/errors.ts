@@ -284,6 +284,10 @@ export function createErrorFromResponse(
       if (body.fields) {
         return new ValidationError(message, body.fields, { requestId });
       }
+      // Create ValidationError when error code indicates it, even without details
+      if (errorCode === 'VALIDATION_ERROR') {
+        return new ValidationError(message, undefined, { requestId });
+      }
       return new PassageError(message, {
         statusCode: 400,
         errorCode: errorCode || 'BAD_REQUEST',

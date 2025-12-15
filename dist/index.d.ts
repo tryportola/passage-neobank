@@ -552,9 +552,9 @@ interface SigningSession {
 }
 /**
  * Signing session status enum
- * Matches Prisma SigningStatus and OpenAPI status enum
+ * References SDK type which matches Prisma SigningStatus and OpenAPI status enum
  */
-type SigningSessionStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'EXPIRED' | 'CANCELLED';
+type SigningSessionStatus = _portola_passage.SigningSessionStatusResponseDataStatusEnum;
 /**
  * Parameters for creating a signing session
  */
