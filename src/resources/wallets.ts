@@ -491,32 +491,42 @@ export class WalletsResource extends BaseResource {
   }
 
   /**
-   * Register wallet and complete verification with a signature
+   * Register wallet and complete verification in a single atomic operation
    *
-   * This is a convenience method for server-side verification when you
-   * already have the user's signature (e.g., from a frontend signing flow).
+   * This method creates a NEW challenge internally and verifies the signature
+   * against that challenge. It is designed for server-controlled signing
+   * scenarios (custodial wallets, automated systems) where you can sign the
+   * challenge message in the same execution context.
    *
-   * Combines: create → initiateVerification → submitProof in one call.
+   * **WARNING:** Do NOT use this after calling `ensureVerified()` or
+   * `initiateVerification()`. Each call creates a new challenge with a unique
+   * nonce, so signatures from previous challenges will fail verification.
+   *
+   * For browser-based user wallet verification, use the two-step flow:
+   * 1. Call `ensureVerified()` to get the challenge
+   * 2. User signs the challenge message in their wallet
+   * 3. Call `submitProof(challenge.verificationId, { signature })`
    *
    * @example
    * ```typescript
-   * // Frontend: User signs message
-   * const challenge = await passage.wallets.ensureVerified({ address: '0x...' });
-   * if (!challenge.verified) {
-   *   const signature = await walletClient.signMessage({
-   *     message: challenge.challenge.challenge.message,
-   *   });
-   *   // Send signature to backend
-   * }
-   *
-   * // Backend: Complete verification
+   * // For custodial/server-controlled wallets only
    * const result = await passage.wallets.verifyWithSignature({
-   *   address: '0x...',
+   *   address: custodialWalletAddress,
    *   chain: 'base',
-   *   signature: signatureFromFrontend,
+   *   signature: await custodialSigner.signMessage(challengeMessage),
    * });
    *
    * console.log(result.wallet.verified); // true
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // For browser-based user wallets, use ensureVerified + submitProof instead:
+   * const result = await passage.wallets.ensureVerified({ address: '0x...' });
+   * if (!result.verified) {
+   *   const signature = await userWallet.signMessage(result.challenge.challenge.message);
+   *   await passage.wallets.submitProof(result.challenge.verificationId, { signature });
+   * }
    * ```
    */
   async verifyWithSignature(
