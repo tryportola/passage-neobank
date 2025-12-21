@@ -184,9 +184,39 @@ export interface ApplicationCreateParams {
   externalId?: string;
   metadata?: Record<string, unknown>;
   draft?: boolean;
-  /** Borrower's wallet address for disbursement (optional - for wallet-first apps) */
+  /**
+   * Reference to a verified Wallet resource (preferred method)
+   *
+   * When set, wallet ownership must be verified before submission.
+   * Use passage.wallets.create() and passage.wallets.initiateVerification()
+   * to register and verify the wallet first.
+   *
+   * @example
+   * ```typescript
+   * // 1. Register and verify wallet
+   * const wallet = await passage.wallets.create({ address: '0x...' });
+   * const challenge = await passage.wallets.initiateVerification(wallet.id, { method: 'MESSAGE_SIGN' });
+   * const signature = await userWallet.signMessage(challenge.challenge.message);
+   * await passage.wallets.submitProof(challenge.verificationId, { signature });
+   *
+   * // 2. Create application with verified wallet
+   * const app = await passage.applications.create({
+   *   walletId: wallet.id,
+   *   productType: 'personal',
+   *   encryptedPayloads: [...],
+   * });
+   * ```
+   */
+  walletId?: string;
+  /**
+   * Borrower's wallet address for disbursement (legacy - use walletId instead)
+   * @deprecated Use walletId with verified wallet ownership instead
+   */
   borrowerWalletAddress?: string;
-  /** Blockchain chain for borrower's wallet (default: 'base') */
+  /**
+   * Blockchain chain for borrower's wallet (default: 'base')
+   * @deprecated Use walletId with verified wallet ownership instead
+   */
   borrowerWalletChain?: 'base' | 'ethereum' | 'polygon' | 'arbitrum' | 'optimism' | 'solana';
 }
 
