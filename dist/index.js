@@ -407,6 +407,7 @@ var ApplicationsResource = class extends BaseResource {
           externalId: params.externalId,
           metadata: params.metadata,
           draft: params.draft,
+          walletId: params.walletId,
           borrowerWalletAddress: params.borrowerWalletAddress,
           borrowerWalletChain: params.borrowerWalletChain
         }
@@ -1248,6 +1249,366 @@ var SDXResource = class extends BaseResource {
   }
 };
 
+// src/resources/wallets.ts
+var WalletsResource = class extends BaseResource {
+  constructor(api, config) {
+    super(config);
+    this.api = api;
+  }
+  /**
+   * Create or link a wallet
+   *
+   * Registers a wallet address for ownership verification.
+   * Idempotent - returns existing wallet if address+chain already exists.
+   *
+   * @example
+   * ```typescript
+   * const wallet = await passage.wallets.create({
+   *   address: '0x1234567890abcdef...',
+   *   chain: 'base',
+   *   externalId: 'user_123', // Your internal user ID
+   *   label: "John's wallet",
+   * });
+   * ```
+   */
+  async create(params) {
+    return this.execute(async () => {
+      this.debug("wallets.create", params.address);
+      const response = await this.api.createWallet({
+        createWalletRequest: {
+          address: params.address,
+          chain: params.chain,
+          type: params.type,
+          externalId: params.externalId,
+          label: params.label,
+          metadata: params.metadata
+        }
+      });
+      const data = unwrapResponse(response);
+      return this.mapWallet(data);
+    }, "wallets.create");
+  }
+  /**
+   * Get a wallet by ID
+   *
+   * @example
+   * ```typescript
+   * const wallet = await passage.wallets.get('wal_123');
+   * console.log(wallet.verified, wallet.verifiedByThisNeobank);
+   * ```
+   */
+  async get(walletId) {
+    return this.execute(async () => {
+      this.debug("wallets.get", walletId);
+      const response = await this.api.getWallet({ id: walletId });
+      const data = unwrapResponse(response);
+      return this.mapWallet(data);
+    }, "wallets.get");
+  }
+  /**
+   * List wallets linked to this neobank
+   *
+   * @example
+   * ```typescript
+   * // List all verified wallets
+   * const { wallets } = await passage.wallets.list({ verified: true });
+   *
+   * // Find wallets by external ID
+   * const { wallets } = await passage.wallets.list({ externalId: 'user_123' });
+   * ```
+   */
+  async list(params = {}) {
+    return this.execute(async () => {
+      this.debug("wallets.list", params);
+      const response = await this.api.listWallets({
+        verified: params.verified,
+        chain: params.chain,
+        externalId: params.externalId,
+        address: params.address,
+        limit: params.limit,
+        offset: params.offset
+      });
+      const data = unwrapResponse(response);
+      return {
+        wallets: data.wallets.map((w) => this.mapWallet(w)),
+        pagination: data.pagination
+      };
+    }, "wallets.list");
+  }
+  /**
+   * Update wallet metadata
+   *
+   * Updates neobank-specific metadata (externalId, label, metadata).
+   *
+   * @example
+   * ```typescript
+   * await passage.wallets.update('wal_123', {
+   *   label: 'Primary wallet',
+   *   externalId: 'new_user_id',
+   * });
+   * ```
+   */
+  async update(walletId, params) {
+    return this.execute(async () => {
+      this.debug("wallets.update", walletId);
+      const response = await this.api.updateWallet({
+        id: walletId,
+        updateWalletRequest: {
+          externalId: params.externalId,
+          label: params.label,
+          metadata: params.metadata
+        }
+      });
+      const data = unwrapResponse(response);
+      return this.mapWallet(data);
+    }, "wallets.update");
+  }
+  /**
+   * Initiate wallet verification
+   *
+   * Starts the verification process. For MESSAGE_SIGN, returns a message
+   * that the user must sign with their wallet.
+   *
+   * @example
+   * ```typescript
+   * const challenge = await passage.wallets.initiateVerification('wal_123', {
+   *   method: 'MESSAGE_SIGN',
+   * });
+   *
+   * // Present message to user for signing
+   * console.log(challenge.challenge.message);
+   * ```
+   */
+  async initiateVerification(walletId, params) {
+    return this.execute(async () => {
+      this.debug("wallets.initiateVerification", walletId, params.method);
+      const response = await this.api.initiateWalletVerification({
+        walletId,
+        initiateVerificationRequest: { method: params.method }
+      });
+      const data = unwrapResponse(response);
+      return {
+        verificationId: data.verificationId,
+        walletId: data.walletId,
+        method: data.method,
+        status: data.status,
+        challenge: data.challenge,
+        expiresAt: data.expiresAt
+      };
+    }, "wallets.initiateVerification");
+  }
+  /**
+   * Submit verification proof
+   *
+   * Submits the signature to complete verification.
+   *
+   * @example
+   * ```typescript
+   * // After user signs the challenge message
+   * const result = await passage.wallets.submitProof(verificationId, {
+   *   signature: '0x...',
+   * });
+   *
+   * if (result.status === 'VERIFIED') {
+   *   console.log('Wallet verified!');
+   * }
+   * ```
+   */
+  async submitProof(verificationId, params) {
+    return this.execute(async () => {
+      this.debug("wallets.submitProof", verificationId);
+      const response = await this.api.submitVerificationProof({
+        verificationId,
+        submitProofRequest: { signature: params.signature }
+      });
+      const data = unwrapResponse(response);
+      return {
+        verificationId: data.verificationId,
+        status: data.status,
+        verifiedAt: data.verifiedAt ?? null,
+        wallet: {
+          id: data.wallet.id,
+          verified: data.wallet.verified,
+          verificationMethod: data.wallet.verificationMethod ?? null
+        }
+      };
+    }, "wallets.submitProof");
+  }
+  /**
+   * Get verification status
+   *
+   * @example
+   * ```typescript
+   * const verification = await passage.wallets.getVerification('ver_123');
+   * console.log(verification.status);
+   * ```
+   */
+  async getVerification(verificationId) {
+    return this.execute(async () => {
+      this.debug("wallets.getVerification", verificationId);
+      const response = await this.api.getVerification({ verificationId });
+      const data = unwrapResponse(response);
+      return {
+        id: data.id,
+        walletId: data.walletId,
+        method: data.method,
+        status: data.status,
+        expiresAt: data.expiresAt,
+        completedAt: data.completedAt,
+        failedAt: data.failedAt,
+        failureReason: data.failureReason
+      };
+    }, "wallets.getVerification");
+  }
+  /**
+   * List verifications for a wallet
+   *
+   * Returns all verification attempts for this wallet by this neobank.
+   *
+   * @example
+   * ```typescript
+   * const { verifications } = await passage.wallets.listVerifications('wal_123');
+   * ```
+   */
+  async listVerifications(walletId) {
+    return this.execute(async () => {
+      this.debug("wallets.listVerifications", walletId);
+      const response = await this.api.listWalletVerifications({ walletId });
+      const data = unwrapResponse(response);
+      return {
+        verifications: data.verifications.map((v) => ({
+          id: v.id,
+          method: v.method,
+          status: v.status,
+          initiatedAt: v.initiatedAt,
+          completedAt: v.completedAt ?? null,
+          expiresAt: v.expiresAt
+        }))
+      };
+    }, "wallets.listVerifications");
+  }
+  // =========================================================================
+  // Convenience Methods
+  // =========================================================================
+  /**
+   * Ensure a wallet is registered and check verification status
+   *
+   * This is a convenience method that:
+   * 1. Creates/links the wallet if it doesn't exist
+   * 2. Checks if already verified by this neobank
+   * 3. Returns verification status and challenge if needed
+   *
+   * Use this when you want to check if a wallet needs verification
+   * before showing the signing UI to the user.
+   *
+   * @example
+   * ```typescript
+   * const result = await passage.wallets.ensureVerified({
+   *   address: userWalletAddress,
+   *   chain: 'base',
+   *   externalId: user.id,
+   * });
+   *
+   * if (result.verified) {
+   *   // Wallet already verified, proceed with application
+   *   console.log('Wallet verified:', result.wallet.id);
+   * } else {
+   *   // Need user to sign - show signing UI
+   *   const signature = await walletClient.signMessage({
+   *     message: result.challenge.challenge.message,
+   *   });
+   *
+   *   await passage.wallets.submitProof(result.challenge.verificationId, { signature });
+   * }
+   * ```
+   */
+  async ensureVerified(params) {
+    return this.execute(async () => {
+      this.debug("wallets.ensureVerified", params.address);
+      const wallet = await this.create(params);
+      if (wallet.verifiedByThisNeobank) {
+        return { verified: true, wallet, challenge: null };
+      }
+      const challenge = await this.initiateVerification(wallet.id, {
+        method: "MESSAGE_SIGN"
+      });
+      return { verified: false, wallet, challenge };
+    }, "wallets.ensureVerified");
+  }
+  /**
+   * Register wallet and complete verification with a signature
+   *
+   * This is a convenience method for server-side verification when you
+   * already have the user's signature (e.g., from a frontend signing flow).
+   *
+   * Combines: create → initiateVerification → submitProof in one call.
+   *
+   * @example
+   * ```typescript
+   * // Frontend: User signs message
+   * const challenge = await passage.wallets.ensureVerified({ address: '0x...' });
+   * if (!challenge.verified) {
+   *   const signature = await walletClient.signMessage({
+   *     message: challenge.challenge.challenge.message,
+   *   });
+   *   // Send signature to backend
+   * }
+   *
+   * // Backend: Complete verification
+   * const result = await passage.wallets.verifyWithSignature({
+   *   address: '0x...',
+   *   chain: 'base',
+   *   signature: signatureFromFrontend,
+   * });
+   *
+   * console.log(result.wallet.verified); // true
+   * ```
+   */
+  async verifyWithSignature(params) {
+    return this.execute(async () => {
+      this.debug("wallets.verifyWithSignature", params.address);
+      const { signature, ...walletParams } = params;
+      const wallet = await this.create(walletParams);
+      if (wallet.verifiedByThisNeobank) {
+        return {
+          verificationId: "",
+          // No new verification created
+          status: "VERIFIED",
+          verifiedAt: wallet.verifiedAt,
+          wallet
+        };
+      }
+      const challenge = await this.initiateVerification(wallet.id, {
+        method: "MESSAGE_SIGN"
+      });
+      const result = await this.submitProof(challenge.verificationId, { signature });
+      const updatedWallet = await this.get(wallet.id);
+      return {
+        ...result,
+        wallet: updatedWallet
+      };
+    }, "wallets.verifyWithSignature");
+  }
+  /**
+   * Map API wallet data to Wallet type
+   */
+  mapWallet(data) {
+    return {
+      id: data.id,
+      address: data.address,
+      chain: data.chain,
+      type: data.type,
+      verified: data.verified,
+      verifiedByThisNeobank: data.verifiedByThisNeobank,
+      verifiedAt: data.verifiedAt ?? null,
+      verificationMethod: data.verificationMethod ?? null,
+      externalId: data.externalId ?? null,
+      label: data.label ?? null,
+      createdAt: data.createdAt
+    };
+  }
+};
+
 // src/client.ts
 var Passage = class {
   constructor(config) {
@@ -1278,6 +1639,7 @@ var Passage = class {
     const selfServiceApi = new passage.NeobankSelfServiceApi(this.sdkConfig);
     const signingApi = new passage.SigningApi(this.sdkConfig);
     const sdxApi = new passage.SDXApi(this.sdkConfig);
+    const walletsApi = new passage.WalletsApi(this.sdkConfig);
     this.applications = new ApplicationsResource(applicationsApi, this.config);
     this.offers = new OffersResource(offersApi, this.config);
     this.loans = new LoansResource(loansApi, this.config);
@@ -1285,6 +1647,7 @@ var Passage = class {
     this.account = new AccountResource(selfServiceApi, this.config);
     this.signing = new SigningResource(signingApi, this.config);
     this.sdx = new SDXResource(sdxApi, this.config);
+    this.wallets = new WalletsResource(walletsApi, this.config);
     if (this.config.debug) {
       console.log("[Passage] Initialized client", {
         environment: this.config.environment,
@@ -1312,6 +1675,10 @@ var Passage = class {
   }
 };
 
+Object.defineProperty(exports, "WalletOwnershipType", {
+  enumerable: true,
+  get: function () { return passage.WalletType; }
+});
 exports.AuthenticationError = AuthenticationError;
 exports.AuthorizationError = AuthorizationError;
 exports.ConflictError = ConflictError;

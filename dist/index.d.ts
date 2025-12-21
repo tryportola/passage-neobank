@@ -1,6 +1,6 @@
 import * as _portola_passage from '@portola/passage';
-import { ApplicationsApi, ApplicationListItem, ApplicationSubmitResponseData, DraftSubmitResponseData, ApplicationStatus, ApplicationStatusUpdateResponseData, OffersApi, OfferAcceptanceResponseData, LoansApi, Loan, RepaymentStatus, EntityDiscoveryApi, NeobankSelfServiceApi, WebhookTestResponseData, WebhookSecretRotateResponseData, SigningApi, SDXApi } from '@portola/passage';
-export { ApplicationStatus, ApplicationStatusUpdateResponseData, ApplicationRequestEncryptedPayloadsInner as EncryptedPayloadInput, KYCHandleRequest, KYCHandleResponse, KYCHandleResponseData, KYCInitiateResponse, KYCInitiateResponseData, KYCProvidersResponse, KYCProvidersResponseData, KYCProvidersResponseDataProvidersInner, KYCStatusResponse, KYCStatusResponseData, KYCStatusResponseDataAttestationsInner, KYCStatusResponseDataStatusEnum, LenderDetail, LenderDetailPublicKey, LenderPublicKeyResponse, LenderPublicKeyResponseData, Loan, LoanStatus, OfferAcceptanceResponseData, ApplicationRequestProductTypeEnum as ProductType, WebhookSecretRotateResponseData, WebhookTestResponseData } from '@portola/passage';
+import { ApplicationsApi, ApplicationListItem, ApplicationSubmitResponseData, DraftSubmitResponseData, ApplicationStatus, ApplicationStatusUpdateResponseData, OffersApi, OfferAcceptanceResponseData, LoansApi, Loan, RepaymentStatus, EntityDiscoveryApi, NeobankSelfServiceApi, WebhookTestResponseData, WebhookSecretRotateResponseData, SigningApi, SDXApi, WalletsApi, Chain, WalletType as WalletType$1, WalletVerificationMethod, WalletVerificationStatus } from '@portola/passage';
+export { ApplicationStatus, ApplicationStatusUpdateResponseData, Chain, ApplicationRequestEncryptedPayloadsInner as EncryptedPayloadInput, KYCHandleRequest, KYCHandleResponse, KYCHandleResponseData, KYCInitiateResponse, KYCInitiateResponseData, KYCProvidersResponse, KYCProvidersResponseData, KYCProvidersResponseDataProvidersInner, KYCStatusResponse, KYCStatusResponseData, KYCStatusResponseDataAttestationsInner, KYCStatusResponseDataStatusEnum, LenderDetail, LenderDetailPublicKey, LenderPublicKeyResponse, LenderPublicKeyResponseData, Loan, LoanStatus, OfferAcceptanceResponseData, ApplicationRequestProductTypeEnum as ProductType, WalletType as WalletOwnershipType, WalletVerificationMethod, WalletVerificationStatus, WebhookSecretRotateResponseData, WebhookTestResponseData } from '@portola/passage';
 export { A as AuthenticationError, a as AuthorizationError, C as ConflictError, b as NetworkError, N as NotFoundError, P as PassageError, R as RateLimitError, T as TimeoutError, V as ValidationError } from './errors-DgbLNkc1.js';
 export { D as DecryptedOfferDetails, a as DecryptionResult, H as HybridEncryptedPayload } from './types-BYrBoKhR.js';
 
@@ -107,9 +107,39 @@ interface ApplicationCreateParams {
     externalId?: string;
     metadata?: Record<string, unknown>;
     draft?: boolean;
-    /** Borrower's wallet address for disbursement (optional - for wallet-first apps) */
+    /**
+     * Reference to a verified Wallet resource (preferred method)
+     *
+     * When set, wallet ownership must be verified before submission.
+     * Use passage.wallets.create() and passage.wallets.initiateVerification()
+     * to register and verify the wallet first.
+     *
+     * @example
+     * ```typescript
+     * // 1. Register and verify wallet
+     * const wallet = await passage.wallets.create({ address: '0x...' });
+     * const challenge = await passage.wallets.initiateVerification(wallet.id, { method: 'MESSAGE_SIGN' });
+     * const signature = await userWallet.signMessage(challenge.challenge.message);
+     * await passage.wallets.submitProof(challenge.verificationId, { signature });
+     *
+     * // 2. Create application with verified wallet
+     * const app = await passage.applications.create({
+     *   walletId: wallet.id,
+     *   productType: 'personal',
+     *   encryptedPayloads: [...],
+     * });
+     * ```
+     */
+    walletId?: string;
+    /**
+     * Borrower's wallet address for disbursement (legacy - use walletId instead)
+     * @deprecated Use walletId with verified wallet ownership instead
+     */
     borrowerWalletAddress?: string;
-    /** Blockchain chain for borrower's wallet (default: 'base') */
+    /**
+     * Blockchain chain for borrower's wallet (default: 'base')
+     * @deprecated Use walletId with verified wallet ownership instead
+     */
     borrowerWalletChain?: 'base' | 'ethereum' | 'polygon' | 'arbitrum' | 'optimism' | 'solana';
 }
 /**
@@ -954,6 +984,339 @@ declare class SDXResource extends BaseResource {
 }
 
 /**
+ * Wallet data returned from the API
+ */
+interface Wallet {
+    id: string;
+    address: string;
+    chain: Chain;
+    type: WalletType$1;
+    verified: boolean;
+    verifiedByThisNeobank: boolean;
+    verifiedAt: string | null;
+    verificationMethod: WalletVerificationMethod | null;
+    externalId: string | null;
+    label: string | null;
+    createdAt: string;
+}
+/**
+ * Parameters for creating/registering a wallet
+ */
+interface CreateWalletParams {
+    address: string;
+    chain?: Chain;
+    type?: WalletType$1;
+    externalId?: string;
+    label?: string;
+    metadata?: Record<string, unknown>;
+}
+/**
+ * Parameters for updating wallet metadata
+ */
+interface UpdateWalletParams {
+    externalId?: string;
+    label?: string;
+    metadata?: Record<string, unknown>;
+}
+/**
+ * Parameters for listing wallets
+ */
+interface ListWalletsParams {
+    verified?: boolean;
+    chain?: Chain;
+    externalId?: string;
+    address?: string;
+    limit?: number;
+    offset?: number;
+}
+/**
+ * Verification challenge data
+ */
+interface VerificationChallenge {
+    verificationId: string;
+    walletId: string;
+    method: WalletVerificationMethod;
+    status: WalletVerificationStatus;
+    challenge: {
+        message: string;
+        nonce: string;
+        signingStandard: 'personal_sign' | 'eth_signTypedData_v4';
+        typedData?: Record<string, unknown>;
+    };
+    expiresAt: string;
+}
+/**
+ * Verification status data
+ */
+interface Verification {
+    id: string;
+    walletId: string;
+    method: WalletVerificationMethod;
+    status: WalletVerificationStatus;
+    expiresAt: string;
+    completedAt?: string | null;
+    failedAt?: string | null;
+    failureReason?: string | null;
+}
+/**
+ * Verification list item
+ */
+interface VerificationSummary {
+    id: string;
+    method: WalletVerificationMethod;
+    status: WalletVerificationStatus;
+    initiatedAt: string;
+    completedAt: string | null;
+    expiresAt: string;
+}
+/**
+ * Result of submitting verification proof
+ */
+interface VerificationResult {
+    verificationId: string;
+    status: WalletVerificationStatus;
+    verifiedAt: string | null;
+    wallet: {
+        id: string;
+        verified: boolean;
+        verificationMethod: WalletVerificationMethod | null;
+    };
+}
+/**
+ * Resource for wallet ownership verification
+ *
+ * @example
+ * ```typescript
+ * // Register a wallet
+ * const wallet = await passage.wallets.create({
+ *   address: '0x1234...',
+ *   chain: 'base',
+ * });
+ *
+ * // Initiate verification
+ * const challenge = await passage.wallets.initiateVerification(wallet.id, {
+ *   method: 'MESSAGE_SIGN',
+ * });
+ *
+ * // User signs the message with their wallet
+ * const signature = await userWallet.signMessage(challenge.challenge.message);
+ *
+ * // Submit the proof
+ * const result = await passage.wallets.submitProof(challenge.verificationId, {
+ *   signature,
+ * });
+ *
+ * console.log(result.status); // 'VERIFIED'
+ * ```
+ */
+declare class WalletsResource extends BaseResource {
+    private api;
+    constructor(api: WalletsApi, config: ResolvedConfig);
+    /**
+     * Create or link a wallet
+     *
+     * Registers a wallet address for ownership verification.
+     * Idempotent - returns existing wallet if address+chain already exists.
+     *
+     * @example
+     * ```typescript
+     * const wallet = await passage.wallets.create({
+     *   address: '0x1234567890abcdef...',
+     *   chain: 'base',
+     *   externalId: 'user_123', // Your internal user ID
+     *   label: "John's wallet",
+     * });
+     * ```
+     */
+    create(params: CreateWalletParams): Promise<Wallet>;
+    /**
+     * Get a wallet by ID
+     *
+     * @example
+     * ```typescript
+     * const wallet = await passage.wallets.get('wal_123');
+     * console.log(wallet.verified, wallet.verifiedByThisNeobank);
+     * ```
+     */
+    get(walletId: string): Promise<Wallet>;
+    /**
+     * List wallets linked to this neobank
+     *
+     * @example
+     * ```typescript
+     * // List all verified wallets
+     * const { wallets } = await passage.wallets.list({ verified: true });
+     *
+     * // Find wallets by external ID
+     * const { wallets } = await passage.wallets.list({ externalId: 'user_123' });
+     * ```
+     */
+    list(params?: ListWalletsParams): Promise<{
+        wallets: Wallet[];
+        pagination: {
+            total: number;
+            limit: number;
+            offset: number;
+        };
+    }>;
+    /**
+     * Update wallet metadata
+     *
+     * Updates neobank-specific metadata (externalId, label, metadata).
+     *
+     * @example
+     * ```typescript
+     * await passage.wallets.update('wal_123', {
+     *   label: 'Primary wallet',
+     *   externalId: 'new_user_id',
+     * });
+     * ```
+     */
+    update(walletId: string, params: UpdateWalletParams): Promise<Wallet>;
+    /**
+     * Initiate wallet verification
+     *
+     * Starts the verification process. For MESSAGE_SIGN, returns a message
+     * that the user must sign with their wallet.
+     *
+     * @example
+     * ```typescript
+     * const challenge = await passage.wallets.initiateVerification('wal_123', {
+     *   method: 'MESSAGE_SIGN',
+     * });
+     *
+     * // Present message to user for signing
+     * console.log(challenge.challenge.message);
+     * ```
+     */
+    initiateVerification(walletId: string, params: {
+        method: WalletVerificationMethod;
+    }): Promise<VerificationChallenge>;
+    /**
+     * Submit verification proof
+     *
+     * Submits the signature to complete verification.
+     *
+     * @example
+     * ```typescript
+     * // After user signs the challenge message
+     * const result = await passage.wallets.submitProof(verificationId, {
+     *   signature: '0x...',
+     * });
+     *
+     * if (result.status === 'VERIFIED') {
+     *   console.log('Wallet verified!');
+     * }
+     * ```
+     */
+    submitProof(verificationId: string, params: {
+        signature: string;
+    }): Promise<VerificationResult>;
+    /**
+     * Get verification status
+     *
+     * @example
+     * ```typescript
+     * const verification = await passage.wallets.getVerification('ver_123');
+     * console.log(verification.status);
+     * ```
+     */
+    getVerification(verificationId: string): Promise<Verification>;
+    /**
+     * List verifications for a wallet
+     *
+     * Returns all verification attempts for this wallet by this neobank.
+     *
+     * @example
+     * ```typescript
+     * const { verifications } = await passage.wallets.listVerifications('wal_123');
+     * ```
+     */
+    listVerifications(walletId: string): Promise<{
+        verifications: VerificationSummary[];
+    }>;
+    /**
+     * Ensure a wallet is registered and check verification status
+     *
+     * This is a convenience method that:
+     * 1. Creates/links the wallet if it doesn't exist
+     * 2. Checks if already verified by this neobank
+     * 3. Returns verification status and challenge if needed
+     *
+     * Use this when you want to check if a wallet needs verification
+     * before showing the signing UI to the user.
+     *
+     * @example
+     * ```typescript
+     * const result = await passage.wallets.ensureVerified({
+     *   address: userWalletAddress,
+     *   chain: 'base',
+     *   externalId: user.id,
+     * });
+     *
+     * if (result.verified) {
+     *   // Wallet already verified, proceed with application
+     *   console.log('Wallet verified:', result.wallet.id);
+     * } else {
+     *   // Need user to sign - show signing UI
+     *   const signature = await walletClient.signMessage({
+     *     message: result.challenge.challenge.message,
+     *   });
+     *
+     *   await passage.wallets.submitProof(result.challenge.verificationId, { signature });
+     * }
+     * ```
+     */
+    ensureVerified(params: CreateWalletParams): Promise<{
+        verified: true;
+        wallet: Wallet;
+        challenge: null;
+    } | {
+        verified: false;
+        wallet: Wallet;
+        challenge: VerificationChallenge;
+    }>;
+    /**
+     * Register wallet and complete verification with a signature
+     *
+     * This is a convenience method for server-side verification when you
+     * already have the user's signature (e.g., from a frontend signing flow).
+     *
+     * Combines: create → initiateVerification → submitProof in one call.
+     *
+     * @example
+     * ```typescript
+     * // Frontend: User signs message
+     * const challenge = await passage.wallets.ensureVerified({ address: '0x...' });
+     * if (!challenge.verified) {
+     *   const signature = await walletClient.signMessage({
+     *     message: challenge.challenge.challenge.message,
+     *   });
+     *   // Send signature to backend
+     * }
+     *
+     * // Backend: Complete verification
+     * const result = await passage.wallets.verifyWithSignature({
+     *   address: '0x...',
+     *   chain: 'base',
+     *   signature: signatureFromFrontend,
+     * });
+     *
+     * console.log(result.wallet.verified); // true
+     * ```
+     */
+    verifyWithSignature(params: CreateWalletParams & {
+        signature: string;
+    }): Promise<VerificationResult & {
+        wallet: Wallet;
+    }>;
+    /**
+     * Map API wallet data to Wallet type
+     */
+    private mapWallet;
+}
+
+/**
  * Main Passage SDK client
  *
  * @example
@@ -994,6 +1357,8 @@ declare class Passage {
     readonly signing: SigningResource;
     /** SDX resource - secure document exchange (upload/download encrypted documents) */
     readonly sdx: SDXResource;
+    /** Wallets resource - wallet ownership verification */
+    readonly wallets: WalletsResource;
     constructor(config: PassageClientConfig);
     /**
      * Get the current configuration (read-only)
@@ -1009,4 +1374,4 @@ declare class Passage {
     get isProduction(): boolean;
 }
 
-export { type AccountInfo, type Application, type ApplicationCreateParams, type ApplicationListParams, type BorrowerWallet, type CommunicationPreferences, type EncryptedPIIPayload, type FinalOfferAcceptParams, type HardPullConsent, type Lender, type LenderListParams, type LenderOffers, type Offer, type OfferType, type OffersResponse, type Pagination, type PaginationParams, Passage, type PassageClientConfig, type PaymentScheduleItem, type PrequalAcceptParams, type SDXDocumentType, type SDXDownloadParams, type SDXTokenParams, type SDXUploadParams, type SDXUploadResult, type SDXUploadToken, type SigningSession, type SigningSessionCreateParams, type SigningSessionStatus, type StoreKYCHandleParams, type WalletType, type WebhookConfig, Passage as default };
+export { type AccountInfo, type Application, type ApplicationCreateParams, type ApplicationListParams, type BorrowerWallet, type CommunicationPreferences, type CreateWalletParams, type EncryptedPIIPayload, type FinalOfferAcceptParams, type HardPullConsent, type Lender, type LenderListParams, type LenderOffers, type ListWalletsParams, type Offer, type OfferType, type OffersResponse, type Pagination, type PaginationParams, Passage, type PassageClientConfig, type PaymentScheduleItem, type PrequalAcceptParams, type SDXDocumentType, type SDXDownloadParams, type SDXTokenParams, type SDXUploadParams, type SDXUploadResult, type SDXUploadToken, type SigningSession, type SigningSessionCreateParams, type SigningSessionStatus, type StoreKYCHandleParams, type UpdateWalletParams, type Verification, type VerificationChallenge, type VerificationResult, type VerificationSummary, type Wallet, type WalletType, type WebhookConfig, Passage as default };
