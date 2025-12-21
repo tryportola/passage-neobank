@@ -138,6 +138,7 @@ export class ApplicationsResource extends BaseResource {
           externalId: params.externalId,
           metadata: params.metadata,
           draft: params.draft,
+          walletId: params.walletId,
           borrowerWalletAddress: params.borrowerWalletAddress,
           borrowerWalletChain: params.borrowerWalletChain,
         },

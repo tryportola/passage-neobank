@@ -153,6 +153,27 @@ export type {
   SigningSessionCreateParams,
 } from './resources/signing';
 
+// Wallet types (defined in resources/wallets.ts)
+export type {
+  Wallet,
+  CreateWalletParams,
+  UpdateWalletParams,
+  ListWalletsParams,
+  VerificationChallenge,
+  Verification,
+  VerificationSummary,
+  VerificationResult,
+  WalletVerificationMethod,
+  WalletVerificationStatus,
+  Chain,
+} from './resources/wallets';
+
+// Re-export wallet verification WalletType enum from SDK
+// (different from the legacy WalletType alias for application wallet custody)
+export {
+  WalletType as WalletOwnershipType,
+} from '@portola/passage';
+
 // Re-export Loan type directly from SDK to avoid duplicate issues
 export type { Loan } from '@portola/passage';
 

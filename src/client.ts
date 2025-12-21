@@ -7,6 +7,7 @@ import {
   NeobankSelfServiceApi,
   SigningApi,
   SDXApi,
+  WalletsApi,
 } from '@portola/passage';
 
 import type { PassageClientConfig } from './config';
@@ -19,6 +20,7 @@ import { LendersResource } from './resources/lenders';
 import { AccountResource } from './resources/account';
 import { SigningResource } from './resources/signing';
 import { SDXResource } from './resources/sdx';
+import { WalletsResource } from './resources/wallets';
 
 /**
  * Main Passage SDK client
@@ -69,6 +71,9 @@ export class Passage {
   /** SDX resource - secure document exchange (upload/download encrypted documents) */
   public readonly sdx: SDXResource;
 
+  /** Wallets resource - wallet ownership verification */
+  public readonly wallets: WalletsResource;
+
   constructor(config: PassageClientConfig) {
     if (!config.apiKey) {
       throw new Error('Passage: apiKey is required');
@@ -111,6 +116,7 @@ export class Passage {
     const selfServiceApi = new NeobankSelfServiceApi(this.sdkConfig);
     const signingApi = new SigningApi(this.sdkConfig);
     const sdxApi = new SDXApi(this.sdkConfig);
+    const walletsApi = new WalletsApi(this.sdkConfig);
 
     // Initialize resource clients
     this.applications = new ApplicationsResource(applicationsApi, this.config);
@@ -120,6 +126,7 @@ export class Passage {
     this.account = new AccountResource(selfServiceApi, this.config);
     this.signing = new SigningResource(signingApi, this.config);
     this.sdx = new SDXResource(sdxApi, this.config);
+    this.wallets = new WalletsResource(walletsApi, this.config);
 
     if (this.config.debug) {
       console.log('[Passage] Initialized client', {
