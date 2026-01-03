@@ -12,6 +12,7 @@ vi.mock('@portola/passage', () => ({
   NeobankSelfServiceApi: vi.fn().mockImplementation(() => ({})),
   SigningApi: vi.fn().mockImplementation(() => ({})),
   SDXApi: vi.fn().mockImplementation(() => ({})),
+  WalletsApi: vi.fn().mockImplementation(() => ({})),
 }));
 
 describe('Passage client', () => {

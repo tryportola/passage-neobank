@@ -73,6 +73,27 @@ export interface ListWalletsParams {
 }
 
 /**
+ * MESSAGE_SIGN challenge structure
+ */
+export interface MessageSignChallenge {
+  message: string;
+  nonce: string;
+  signingStandard: 'personal_sign' | 'eth_signTypedData_v4';
+  typedData?: Record<string, unknown>;
+}
+
+/**
+ * AOPP challenge structure
+ */
+export interface AOPPChallenge {
+  callback: string;
+  message: string;
+  asset: string;
+  format?: string;
+  aoppUri: string;
+}
+
+/**
  * Verification challenge data
  */
 export interface VerificationChallenge {
@@ -80,13 +101,26 @@ export interface VerificationChallenge {
   walletId: string;
   method: WalletVerificationMethod;
   status: WalletVerificationStatus;
-  challenge: {
-    message: string;
-    nonce: string;
-    signingStandard: 'personal_sign' | 'eth_signTypedData_v4';
-    typedData?: Record<string, unknown>;
-  };
+  challenge: MessageSignChallenge | AOPPChallenge;
   expiresAt: string;
+}
+
+/**
+ * Type guard to check if challenge is AOPP
+ */
+export function isAOPPChallenge(
+  challenge: MessageSignChallenge | AOPPChallenge
+): challenge is AOPPChallenge {
+  return 'aoppUri' in challenge;
+}
+
+/**
+ * Type guard to check if challenge is MESSAGE_SIGN
+ */
+export function isMessageSignChallenge(
+  challenge: MessageSignChallenge | AOPPChallenge
+): challenge is MessageSignChallenge {
+  return 'nonce' in challenge && 'signingStandard' in challenge;
 }
 
 /**
@@ -566,6 +600,125 @@ export class WalletsResource extends BaseResource {
         wallet: updatedWallet,
       };
     }, 'wallets.verifyWithSignature');
+  }
+
+  // =========================================================================
+  // AOPP Methods
+  // =========================================================================
+
+  /**
+   * Initiate AOPP verification
+   *
+   * Returns a challenge with an aoppUri that can be displayed as a QR code.
+   * The user scans this with an AOPP-compatible wallet (Ledger Live, BitBox),
+   * and the wallet POSTs the signature directly to our callback URL.
+   *
+   * After displaying the QR code, poll with `waitForAOPPVerification()` to
+   * detect when the user completes verification.
+   *
+   * @example
+   * ```typescript
+   * import { isAOPPChallenge } from '@portola/passage-neobank';
+   *
+   * const challenge = await passage.wallets.initiateAOPPVerification('wal_123');
+   *
+   * if (isAOPPChallenge(challenge.challenge)) {
+   *   // Display QR code with challenge.challenge.aoppUri
+   *   showQRCode(challenge.challenge.aoppUri);
+   *
+   *   // Poll for completion (user signs in their wallet app)
+   *   const result = await passage.wallets.waitForAOPPVerification(
+   *     challenge.verificationId,
+   *     { timeout: 600000 } // 10 minutes
+   *   );
+   *
+   *   if (result.status === 'VERIFIED') {
+   *     console.log('Wallet verified via AOPP!');
+   *   }
+   * }
+   * ```
+   */
+  async initiateAOPPVerification(walletId: string): Promise<VerificationChallenge> {
+    return this.execute(async () => {
+      this.debug('wallets.initiateAOPPVerification', walletId);
+
+      const response = await this.api.initiateWalletVerification({
+        walletId,
+        initiateVerificationRequest: { method: 'AOPP' },
+      });
+
+      const data = unwrapResponse(response);
+      return {
+        verificationId: data.verificationId,
+        walletId: data.walletId,
+        method: data.method,
+        status: data.status,
+        challenge: data.challenge,
+        expiresAt: data.expiresAt,
+      };
+    }, 'wallets.initiateAOPPVerification');
+  }
+
+  /**
+   * Poll for AOPP verification completion
+   *
+   * Since AOPP callbacks go directly to the server (not through the frontend),
+   * this method polls the verification status until it completes, fails, or times out.
+   *
+   * @param verificationId - The verification ID from initiateAOPPVerification
+   * @param options - Polling options
+   * @param options.timeout - Max time to wait in ms (default: 600000 = 10 minutes)
+   * @param options.interval - Poll interval in ms (default: 2000 = 2 seconds)
+   * @param options.onPoll - Optional callback on each poll (for showing countdown)
+   *
+   * @example
+   * ```typescript
+   * const result = await passage.wallets.waitForAOPPVerification(verificationId, {
+   *   timeout: 600000, // 10 minutes
+   *   interval: 2000,  // Check every 2 seconds
+   *   onPoll: (verification) => {
+   *     console.log(`Status: ${verification.status}, expires: ${verification.expiresAt}`);
+   *   },
+   * });
+   * ```
+   */
+  async waitForAOPPVerification(
+    verificationId: string,
+    options: {
+      timeout?: number;
+      interval?: number;
+      onPoll?: (verification: Verification) => void;
+    } = {}
+  ): Promise<Verification> {
+    const { timeout = 600000, interval = 2000, onPoll } = options;
+    const startTime = Date.now();
+
+    return this.execute(async () => {
+      this.debug('wallets.waitForAOPPVerification', verificationId);
+
+      while (Date.now() - startTime < timeout) {
+        const verification = await this.getVerification(verificationId);
+
+        if (onPoll) {
+          onPoll(verification);
+        }
+
+        // Terminal states - return immediately
+        if (
+          verification.status === 'VERIFIED' ||
+          verification.status === 'FAILED' ||
+          verification.status === 'EXPIRED'
+        ) {
+          return verification;
+        }
+
+        // Still pending - wait and poll again
+        await new Promise((resolve) => setTimeout(resolve, interval));
+      }
+
+      // Timeout - fetch final status
+      return this.getVerification(verificationId);
+    }, 'wallets.waitForAOPPVerification');
   }
 
   /**
