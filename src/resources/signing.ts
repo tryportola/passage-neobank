@@ -13,15 +13,15 @@ import { BaseResource, unwrapResponse } from './base';
 export interface SigningSession {
   sessionId: string;
   applicationId: string;
+  lenderId?: string;
   status: SigningSessionStatus;
   signingUrl?: string;
+  initiatedAt?: string;
   expiresAt?: string;
   borrowerEmail?: string;
   borrowerName?: string;
   completedAt?: string | null;
   documentHandle?: string | null;
-  failedAt?: string | null;
-  failureReason?: string | null;
 }
 
 /**
@@ -29,7 +29,7 @@ export interface SigningSession {
  * References SDK type which matches Prisma SigningStatus and OpenAPI status enum
  */
 export type SigningSessionStatus =
-  import('@portola/passage').SigningSessionStatusResponseDataStatusEnum;
+  import('@portola/passage').SigningSessionStatus;
 
 /**
  * Parameters for creating a signing session
@@ -125,8 +125,6 @@ export class SigningResource extends BaseResource {
         borrowerName: data.borrowerName,
         completedAt: data.completedAt,
         documentHandle: data.signedDocHandle,
-        failedAt: data.failedAt,
-        failureReason: data.failureReason,
       };
     }, 'signing.getStatus');
   }
@@ -154,14 +152,14 @@ export class SigningResource extends BaseResource {
       return data.sessions.map((session) => ({
         sessionId: session.sessionId,
         applicationId: session.applicationId,
+        lenderId: session.lenderId,
         status: session.status as SigningSessionStatus,
         borrowerEmail: session.borrowerEmail,
         borrowerName: session.borrowerName,
-        completedAt: session.completedAt,
+        initiatedAt: session.initiatedAt,
         expiresAt: session.expiresAt,
+        completedAt: session.completedAt,
         documentHandle: session.signedDocHandle,
-        failedAt: session.failedAt,
-        failureReason: session.failureReason,
       }));
     }, 'signing.list');
   }

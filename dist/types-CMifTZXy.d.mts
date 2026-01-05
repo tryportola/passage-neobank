@@ -94,4 +94,4 @@ interface DecryptionResult<T = unknown> {
     verified: boolean;
 }
 
-export type { DecryptedOfferDetails as D, EncryptedPIIPayload as E, HybridEncryptedPayload as H, OfferFees as O, DecryptionResult as a };
+export type { DecryptionResult as D, EncryptedPIIPayload as E, HybridEncryptedPayload as H, OfferFees as O, DecryptedOfferDetails as a };

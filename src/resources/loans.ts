@@ -1,4 +1,4 @@
-import type { LoansApi, LoanStatus, RepaymentStatus } from '@portola/passage';
+import type { LoansApi, ApplicationsApi, LoanStatus, RepaymentStatus } from '@portola/passage';
 import type {
   LoanResponse,
   PaymentScheduleResponse,
@@ -7,7 +7,6 @@ import type {
 import type { ResolvedConfig } from '../config';
 import type { PaymentScheduleItem, LoanListParams, Pagination, Repayment } from '../types';
 import { BaseResource, unwrapResponse } from './base';
-import { PassageError } from '../errors';
 
 /**
  * Resource for managing loans
@@ -16,10 +15,12 @@ import { PassageError } from '../errors';
  */
 export class LoansResource extends BaseResource {
   private api: LoansApi;
+  private applicationsApi: ApplicationsApi;
 
-  constructor(api: LoansApi, config: ResolvedConfig) {
+  constructor(api: LoansApi, applicationsApi: ApplicationsApi, config: ResolvedConfig) {
     super(config);
     this.api = api;
+    this.applicationsApi = applicationsApi;
   }
 
   /**
@@ -159,32 +160,34 @@ export class LoansResource extends BaseResource {
   /**
    * Get loan by application ID
    *
-   * Returns null if no loan exists for this application (instead of throwing NotFoundError).
+   * Convenience method for neobanks to look up a loan using the application ID.
+   * Returns null if the application hasn't been funded yet (no loan exists).
    *
    * @example
    * ```typescript
+   * // Get loan for an application
    * const loan = await passage.loans.getByApplication('app_123');
    * if (loan) {
-   *   console.log(`Loan found: ${loan.id}`);
-   * } else {
-   *   console.log('No loan exists for this application yet');
+   *   console.log(`Loan status: ${loan.status}`);
    * }
    * ```
+   *
+   * @see applications.getLoan() - Equivalent method on the applications resource
    */
   async getByApplication(applicationId: string): Promise<Loan | null> {
-    try {
-      return await this.execute(async () => {
-        this.debug('loans.getByApplication', applicationId);
-        const response = await this.api.getLoanByApplication({ applicationId });
-        // Response is AxiosResponse<LoanResponse>
+    return this.execute(async () => {
+      this.debug('loans.getByApplication', applicationId);
+
+      try {
+        const response = await this.applicationsApi.getLoanByApplication({ applicationId });
         return unwrapResponse(response);
-      }, 'loans.getByApplication');
-    } catch (error) {
-      // Return null if no loan exists for this application
-      if (error instanceof PassageError && error.statusCode === 404) {
-        return null;
+      } catch (error: any) {
+        // Return null for 404 (no loan yet) instead of throwing
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
       }
-      throw error;
-    }
+    }, 'loans.getByApplication');
   }
 }

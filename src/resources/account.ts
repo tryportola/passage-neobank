@@ -1,18 +1,17 @@
-import type { NeobankSelfServiceApi } from '@portola/passage';
+import type { NeobankSelfServiceApi, AccountStatsData } from '@portola/passage';
 import type {
   NeobankAccountResponse,
   WebhookConfigResponse,
   WebhookUrlUpdateResponse,
   WebhookTestResponse,
+  WebhookTestData,
   WebhookSecretRotateResponse,
+  WebhookSecretRotateData,
 } from '@portola/passage';
 import type { ResolvedConfig } from '../config';
 import type {
   AccountInfo,
   WebhookConfig,
-  WebhookTestResponseData,
-  WebhookSecretRotateResponseData,
-  NeobankStats,
 } from '../types';
 import { BaseResource, unwrapResponse } from './base';
 
@@ -62,14 +61,13 @@ export class AccountResource extends BaseResource {
    * console.log(`Unique borrowers: ${stats.borrowers.total}`);
    * ```
    */
-  async getStats(): Promise<NeobankStats> {
+  async getStats(): Promise<AccountStatsData> {
     return this.execute(async () => {
       this.debug('account.getStats');
 
       const response = await this.api.getAccountStats();
-      // Response is AxiosResponse<GetAccountStats200Response>
-      const data = unwrapResponse(response);
-      return data as NeobankStats;
+      // Response is AxiosResponse<AccountStatsResponse>
+      return unwrapResponse(response);
     }, 'account.getStats');
   }
 
@@ -140,7 +138,7 @@ export class AccountResource extends BaseResource {
    * }
    * ```
    */
-  async testWebhook(): Promise<WebhookTestResponseData> {
+  async testWebhook(): Promise<WebhookTestData> {
     return this.execute(async () => {
       this.debug('account.testWebhook');
 
@@ -162,7 +160,7 @@ export class AccountResource extends BaseResource {
    * await saveToSecretManager(result.webhookSecret);
    * ```
    */
-  async rotateWebhookSecret(): Promise<WebhookSecretRotateResponseData> {
+  async rotateWebhookSecret(): Promise<WebhookSecretRotateData> {
     return this.execute(async () => {
       this.debug('account.rotateWebhookSecret');
 

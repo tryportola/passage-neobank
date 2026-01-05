@@ -12,36 +12,37 @@
 // Application types
 export type {
   ApplicationRequest,
-  ApplicationRequestEncryptedPayloadsInner,
-  ApplicationRequestProductTypeEnum,
+  EncryptedPayload,
+  ProductType,
   ApplicationResponse,
   ApplicationResponseData,
-  ApplicationResponseDataWalletTypeEnum,
   ApplicationSubmitResponse,
   ApplicationSubmitResponseData,
   ApplicationStatus,
   ApplicationStatusUpdateResponse,
   ApplicationStatusUpdateResponseData,
   ApplicationListItem,
-  ListApplications200Response,
-  ListApplications200ResponseData,
+  ApplicationListResponse,
+  ApplicationListResponseData,
 } from '@portola/passage';
 
 // Offer types
 export type {
   EncryptedOffer,
-  EncryptedOfferOfferTypeEnum,
+  OfferType,
   EncryptedOffersResponse,
   EncryptedOffersResponseData,
-  EncryptedOffersResponseDataLendersInner,
+  EncryptedOffersLenderGroup,
   OfferAcceptanceRequest,
   OfferAcceptanceRequestBorrowerWallet,
-  OfferAcceptanceRequestBorrowerWalletChainEnum,
   OfferAcceptanceRequestBorrowerWalletWalletTypeEnum,
   OfferAcceptanceRequestHardPullConsent,
   OfferAcceptanceRequestCommunicationPreferences,
   OfferAcceptanceResponse,
   OfferAcceptanceResponseData,
+  FinalOfferAcceptanceResponse,
+  FinalOfferAcceptanceResponseData,
+  SupportedChain,
 } from '@portola/passage';
 
 // Loan types (Loan is re-exported separately to avoid conflicts)
@@ -49,55 +50,49 @@ export type {
   LoanStatus,
   LoanResponse,
   PaymentScheduleResponse,
-  PaymentScheduleResponseData,
   ScheduledPayment,
 } from '@portola/passage';
 
 // Lender types
 export type {
   LenderListResponse,
-  LenderListResponseData,
+  LenderListData,
   LenderListItem,
   LenderDetailResponse,
-  LenderDetailResponseData,
+  LenderDetailData,
   LenderDetail,
-  LenderDetailPublicKey,
   LenderPublicKeyResponse,
-  LenderPublicKeyResponseData,
+  LenderPublicKeyData,
 } from '@portola/passage';
 
 // Draft submission types
 export type {
   DraftSubmitRequest,
-  DraftSubmitRequestPerLenderKycHandlesInner,
   DraftSubmitResponse,
 } from '@portola/passage';
 
 // Self-service types
 export type {
   NeobankAccountResponse,
-  NeobankAccountResponseData,
+  NeobankAccountData,
   WebhookConfigResponse,
-  WebhookConfigResponseData,
+  WebhookConfigData,
   WebhookUrlUpdateResponse,
-  WebhookUrlUpdateResponseData,
+  WebhookUrlUpdateData,
   WebhookTestResponse,
-  WebhookTestResponseData,
+  WebhookTestData,
   WebhookSecretRotateResponse,
-  WebhookSecretRotateResponseData,
+  WebhookSecretRotateData,
 } from '@portola/passage';
 
 // ============================================================================
-// Pagination (SDK client specific)
+// Pagination
 // ============================================================================
 
-export interface Pagination {
-  total: number;
-  limit: number;
-  offset: number;
-  hasMore: boolean;
-}
+// Re-export Pagination from SDK (response type)
+export type { Pagination } from '@portola/passage';
 
+// Client-specific input params (not in SDK)
 export interface PaginationParams {
   limit?: number;
   offset?: number;
@@ -108,31 +103,52 @@ export interface PaginationParams {
 // ============================================================================
 
 /**
- * Alias for ApplicationRequestEncryptedPayloadsInner
+ * Alias for EncryptedPayload
  * Use this when creating encrypted payloads for application submission
  */
 export type EncryptedPIIPayload =
-  import('@portola/passage').ApplicationRequestEncryptedPayloadsInner;
+  import('@portola/passage').EncryptedPayload;
 
 /**
- * Alias for ApplicationRequestProductTypeEnum
+ * Alias for ProductType enum
+ * @deprecated Import ProductType directly from this module instead
  */
-export type ProductType =
-  import('@portola/passage').ApplicationRequestProductTypeEnum;
+export type ProductTypeAlias =
+  import('@portola/passage').ProductType;
 
 /**
- * Alias for ApplicationResponseDataWalletTypeEnum
- * Indicates the custody model for the borrower's wallet
+ * Wallet custody model for loan disbursement (used in application creation).
+ *
+ * Indicates whether the borrower's wallet is custodial or non-custodial,
+ * which affects how loan funds are disbursed.
+ *
+ * Values: `'CUSTODIAL'` | `'NON_CUSTODIAL'`
+ *
+ * **Note:** This is different from `WalletOwnershipType`, which is used in the
+ * Wallet Verification system to indicate individual vs entity ownership.
+ *
+ * @example
+ * ```typescript
+ * // In application creation (legacy pattern)
+ * const app = await passage.applications.create({
+ *   productType: 'personal',
+ *   borrowerWalletAddress: '0x...',
+ *   // walletType defaults based on context
+ * });
+ * ```
+ *
+ * @see WalletOwnershipType - For wallet verification ownership type (different concept)
  */
 export type WalletType =
-  import('@portola/passage').ApplicationResponseDataWalletTypeEnum;
+  import('@portola/passage').WalletType;
 
 /**
- * Alias for EncryptedOfferOfferTypeEnum
+ * Alias for offer type enum
  * Indicates the type of offer (prequalified or final)
+ * @deprecated Import OfferType directly from this module instead
  */
-export type OfferType =
-  import('@portola/passage').EncryptedOfferOfferTypeEnum;
+export type OfferTypeAlias =
+  import('@portola/passage').OfferType;
 
 /**
  * Alias for OfferAcceptanceRequestBorrowerWallet
@@ -167,7 +183,7 @@ export type PaymentScheduleItem =
  */
 export interface ApplicationListParams extends PaginationParams {
   status?: import('@portola/passage').ApplicationStatus;
-  productType?: import('@portola/passage').ApplicationRequestProductTypeEnum;
+  productType?: import('@portola/passage').ProductType;
   /** Filter by your external reference ID (exact match) */
   externalId?: string;
   /** Filter by borrower's wallet address (case-insensitive) */
@@ -178,7 +194,7 @@ export interface ApplicationListParams extends PaginationParams {
  * Parameters for creating a new application
  */
 export interface ApplicationCreateParams {
-  productType: import('@portola/passage').ApplicationRequestProductTypeEnum;
+  productType: import('@portola/passage').ProductType;
   encryptedPayloads: EncryptedPIIPayload[];
   /** Your external reference ID (e.g., user ID in your system) */
   externalId?: string;
@@ -222,19 +238,41 @@ export interface ApplicationCreateParams {
 
 /**
  * Parameters for accepting a prequalified offer
+ *
+ * This triggers the lender to perform a hard credit pull.
+ * Optionally, you can also provide borrower wallet info and
+ * communication preferences at this stage.
  */
 export interface PrequalAcceptParams {
+  /** Required consent for credit check */
   hardPullConsent: HardPullConsent;
+  /** Borrower communication preferences */
   communicationPreferences?: CommunicationPreferences;
+  /**
+   * Borrower wallet for USDC disbursement
+   * If not provided here, must be set when creating the application
+   */
+  borrowerWallet?: BorrowerWallet;
+  /** Borrower email for signing session (can also be provided at final acceptance) */
+  borrowerEmail?: string;
+  /** Borrower name for signing session (can also be provided at final acceptance) */
+  borrowerName?: string;
+  /** Requested disbursement details */
+  requestedDisbursement?: {
+    amount?: number;
+    method?: 'ach' | 'wire' | 'stablecoin';
+    destination?: string;
+  };
 }
 
 /**
  * Parameters for accepting a final offer
  */
 export interface FinalOfferAcceptParams {
-  hardPullConsent: HardPullConsent;
-  borrowerWallet?: BorrowerWallet;
-  communicationPreferences?: CommunicationPreferences;
+  /** Borrower email for signing session */
+  borrowerEmail?: string;
+  /** Borrower name for signing session */
+  borrowerName?: string;
 }
 
 /**
@@ -288,7 +326,9 @@ export type Offer = import('@portola/passage').EncryptedOffer;
  * Lender with offers grouped
  */
 export type LenderOffers =
-  import('@portola/passage').EncryptedOffersResponseDataLendersInner;
+  import('@portola/passage').EncryptedOffersLenderGroup;
+
+// Note: OfferAcceptanceResponseData is exported directly from @portola/passage above
 
 // Note: Loan type is re-exported from index.ts to avoid duplicate exports
 
@@ -296,13 +336,13 @@ export type LenderOffers =
  * Account info (unwrapped)
  */
 export type AccountInfo =
-  import('@portola/passage').NeobankAccountResponseData;
+  import('@portola/passage').NeobankAccountData;
 
 /**
  * Webhook config (unwrapped)
  */
 export type WebhookConfig =
-  import('@portola/passage').WebhookConfigResponseData;
+  import('@portola/passage').WebhookConfigData;
 
 /**
  * Lender info from discovery list
@@ -310,47 +350,25 @@ export type WebhookConfig =
 export type Lender = import('@portola/passage').LenderListItem;
 
 /**
- * Account statistics response
- */
-export interface NeobankStats {
-  applications: {
-    total: number;
-    byStatus: Record<string, number>;
-  };
-  loans: {
-    total: number;
-    active: number;
-    paidOff: number;
-    totalDisbursed: string;
-    outstandingPrincipal: string;
-  };
-  borrowers: {
-    total: number;
-  };
-  asOf: string;
-}
-
-/**
  * Repayment data from a loan
+ *
+ * Note: Receipt data (fee breakdown) is lender-only and not available to neobanks.
+ * See tickets/repayment-receipt-storage.md for planned improvements.
  */
 export interface Repayment {
   id: string;
-  loanId: string;
-  bridgeDrainId?: string | null;
+  bridgeDrainId: string;
   amount: string;
   currency: string;
-  sourceAddress?: string | null;
-  sourceChain?: string | null;
-  depositTxHash?: string | null;
-  destinationTxHash?: string | null;
-  principalPortion?: string | null;
-  interestPortion?: string | null;
-  balanceBefore?: string | null;
-  balanceAfter?: string | null;
+  state: string;
+  fromAddress: string | null;
+  sourceChain: string | null;
+  depositTxHash: string | null;
+  destinationTxHash: string | null;
+  principalPortion: string | null;
+  interestPortion: string | null;
   receivedAt: string;
-  completedAt?: string | null;
-  status: string;
-  createdAt: string;
+  completedAt: string | null;
 }
 
 // ============================================================================

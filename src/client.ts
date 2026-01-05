@@ -121,7 +121,7 @@ export class Passage {
     // Initialize resource clients
     this.applications = new ApplicationsResource(applicationsApi, this.config);
     this.offers = new OffersResource(offersApi, this.config);
-    this.loans = new LoansResource(loansApi, this.config);
+    this.loans = new LoansResource(loansApi, applicationsApi, this.config);
     this.lenders = new LendersResource(entityDiscoveryApi, this.config);
     this.account = new AccountResource(selfServiceApi, this.config);
     this.signing = new SigningResource(signingApi, this.config);

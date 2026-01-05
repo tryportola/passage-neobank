@@ -5,7 +5,7 @@ import axios from 'axios';
 // src/client.ts
 
 // package.json
-var version = "1.1.0";
+var version = "1.2.0";
 
 // src/config.ts
 var API_BASE_URL = "https://api.tryportola.com/api/v1";
@@ -425,7 +425,7 @@ var ApplicationsResource = class extends BaseResource {
       this.debug("applications.submitDraft", applicationId);
       const response = await this.api.submitDraftApplication({
         applicationId,
-        draftSubmitRequest: {
+        applicationSubmitRequest: {
           perLenderKycHandles: params?.perLenderKycHandles
         }
       });
@@ -450,7 +450,7 @@ var ApplicationsResource = class extends BaseResource {
       this.debug("applications.updateStatus", { applicationId, status });
       const response = await this.api.updateApplicationStatus({
         applicationId,
-        updateApplicationStatusRequest: { status }
+        applicationStatusUpdateRequest: { status }
       });
       return unwrapResponse(response);
     }, "applications.updateStatus");
@@ -470,6 +470,37 @@ var ApplicationsResource = class extends BaseResource {
    */
   async cancel(applicationId) {
     return this.updateStatus(applicationId, "CANCELLED");
+  }
+  /**
+   * Get the loan associated with an application
+   *
+   * Returns the loan that was created when this application was funded.
+   * Returns null if the application hasn't been funded yet.
+   *
+   * @example
+   * ```typescript
+   * // Check if application has a loan
+   * const loan = await passage.applications.getLoan('app_123');
+   * if (loan) {
+   *   console.log(`Loan ${loan.id} - Principal: $${loan.principal}`);
+   * } else {
+   *   console.log('Application not yet funded');
+   * }
+   * ```
+   */
+  async getLoan(applicationId) {
+    return this.execute(async () => {
+      this.debug("applications.getLoan", applicationId);
+      try {
+        const response = await this.api.getLoanByApplication({ applicationId });
+        return unwrapResponse(response);
+      } catch (error) {
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    }, "applications.getLoan");
   }
 };
 
@@ -513,7 +544,8 @@ var OffersResource = class extends BaseResource {
   /**
    * Accept a prequalified offer to proceed to final underwriting
    *
-   * Requires hard pull consent from the borrower.
+   * Requires hard pull consent from the borrower. This triggers the lender
+   * to perform a hard credit pull and submit final offers.
    *
    * @example
    * ```typescript
@@ -523,6 +555,11 @@ var OffersResource = class extends BaseResource {
    *     consentedAt: new Date().toISOString(),
    *     ipAddress: req.ip,
    *     userAgent: req.headers['user-agent'],
+   *   },
+   *   // Optional: provide wallet for disbursement if not set at application creation
+   *   borrowerWallet: {
+   *     address: '0x1234...',
+   *     chain: 'base',
    *   },
    * });
    * // Application moves to final underwriting
@@ -535,7 +572,11 @@ var OffersResource = class extends BaseResource {
         offerId,
         offerAcceptanceRequest: {
           hardPullConsent: params.hardPullConsent,
-          communicationPreferences: params.communicationPreferences
+          communicationPreferences: params.communicationPreferences,
+          borrowerWallet: params.borrowerWallet,
+          borrowerEmail: params.borrowerEmail,
+          borrowerName: params.borrowerName,
+          requestedDisbursement: params.requestedDisbursement
         }
       });
       return unwrapResponse(response);
@@ -560,32 +601,32 @@ var OffersResource = class extends BaseResource {
    * Accept a final offer to proceed to signing
    *
    * This is the point of no return - the borrower commits to the loan terms.
+   * Returns signing session details including the URL to redirect the borrower.
+   *
+   * Note: hardPullConsent and borrowerWallet should have been provided when
+   * accepting the prequalified offer via acceptPrequal().
    *
    * @example
    * ```typescript
    * const result = await passage.offers.acceptFinal(offerId, {
-   *   hardPullConsent: {
-   *     consented: true,
-   *     consentedAt: new Date().toISOString(),
-   *     ipAddress: req.ip,
-   *     userAgent: req.headers['user-agent'],
-   *   },
-   *   borrowerWallet: {
-   *     address: '0x1234...',
-   *     chain: 'polygon',
-   *   },
+   *   borrowerEmail: 'borrower@example.com',
+   *   borrowerName: 'John Doe',
    * });
+   *
+   * // Redirect borrower to sign documents
+   * if (result.signingUrl) {
+   *   console.log('Sign at:', result.signingUrl);
+   * }
    * ```
    */
-  async acceptFinal(offerId, params) {
+  async acceptFinal(offerId, params = {}) {
     return this.execute(async () => {
       this.debug("offers.acceptFinal", offerId);
       const response = await this.api.acceptFinalOffer({
         offerId,
-        offerAcceptanceRequest: {
-          hardPullConsent: params.hardPullConsent,
-          borrowerWallet: params.borrowerWallet,
-          communicationPreferences: params.communicationPreferences
+        finalOfferAcceptanceRequest: {
+          borrowerEmail: params.borrowerEmail,
+          borrowerName: params.borrowerName
         }
       });
       return unwrapResponse(response);
@@ -595,9 +636,10 @@ var OffersResource = class extends BaseResource {
 
 // src/resources/loans.ts
 var LoansResource = class extends BaseResource {
-  constructor(api, config) {
+  constructor(api, applicationsApi, config) {
     super(config);
     this.api = api;
+    this.applicationsApi = applicationsApi;
   }
   /**
    * List loans with optional filtering
@@ -711,31 +753,33 @@ var LoansResource = class extends BaseResource {
   /**
    * Get loan by application ID
    *
-   * Returns null if no loan exists for this application (instead of throwing NotFoundError).
+   * Convenience method for neobanks to look up a loan using the application ID.
+   * Returns null if the application hasn't been funded yet (no loan exists).
    *
    * @example
    * ```typescript
+   * // Get loan for an application
    * const loan = await passage.loans.getByApplication('app_123');
    * if (loan) {
-   *   console.log(`Loan found: ${loan.id}`);
-   * } else {
-   *   console.log('No loan exists for this application yet');
+   *   console.log(`Loan status: ${loan.status}`);
    * }
    * ```
+   *
+   * @see applications.getLoan() - Equivalent method on the applications resource
    */
   async getByApplication(applicationId) {
-    try {
-      return await this.execute(async () => {
-        this.debug("loans.getByApplication", applicationId);
-        const response = await this.api.getLoanByApplication({ applicationId });
+    return this.execute(async () => {
+      this.debug("loans.getByApplication", applicationId);
+      try {
+        const response = await this.applicationsApi.getLoanByApplication({ applicationId });
         return unwrapResponse(response);
-      }, "loans.getByApplication");
-    } catch (error) {
-      if (error instanceof PassageError && error.statusCode === 404) {
-        return null;
+      } catch (error) {
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
       }
-      throw error;
-    }
+    }, "loans.getByApplication");
   }
 };
 
@@ -819,8 +863,7 @@ var AccountResource = class extends BaseResource {
     return this.execute(async () => {
       this.debug("account.getStats");
       const response = await this.api.getAccountStats();
-      const data = unwrapResponse(response);
-      return data;
+      return unwrapResponse(response);
     }, "account.getStats");
   }
   /**
@@ -977,9 +1020,7 @@ var SigningResource = class extends BaseResource {
         borrowerEmail: data.borrowerEmail,
         borrowerName: data.borrowerName,
         completedAt: data.completedAt,
-        documentHandle: data.signedDocHandle,
-        failedAt: data.failedAt,
-        failureReason: data.failureReason
+        documentHandle: data.signedDocHandle
       };
     }, "signing.getStatus");
   }
@@ -1003,14 +1044,14 @@ var SigningResource = class extends BaseResource {
       return data.sessions.map((session) => ({
         sessionId: session.sessionId,
         applicationId: session.applicationId,
+        lenderId: session.lenderId,
         status: session.status,
         borrowerEmail: session.borrowerEmail,
         borrowerName: session.borrowerName,
-        completedAt: session.completedAt,
+        initiatedAt: session.initiatedAt,
         expiresAt: session.expiresAt,
-        documentHandle: session.signedDocHandle,
-        failedAt: session.failedAt,
-        failureReason: session.failureReason
+        completedAt: session.completedAt,
+        documentHandle: session.signedDocHandle
       }));
     }, "signing.list");
   }
@@ -1313,8 +1354,9 @@ var WalletsResource = class extends BaseResource {
   async list(params = {}) {
     return this.execute(async () => {
       this.debug("wallets.list", params);
+      const verifiedParam = params.verified === void 0 ? void 0 : params.verified ? "true" : "false";
       const response = await this.api.listWallets({
-        verified: params.verified,
+        verified: verifiedParam,
         chain: params.chain,
         externalId: params.externalId,
         address: params.address,
@@ -1375,7 +1417,7 @@ var WalletsResource = class extends BaseResource {
   async initiateVerification(walletId, params) {
     return this.execute(async () => {
       this.debug("wallets.initiateVerification", walletId, params.method);
-      const response = await this.api.initiateWalletVerification({
+      const response = await this.api.initiateVerification({
         walletId,
         initiateVerificationRequest: { method: params.method }
       });
@@ -1418,11 +1460,11 @@ var WalletsResource = class extends BaseResource {
       return {
         verificationId: data.verificationId,
         status: data.status,
-        verifiedAt: data.verifiedAt ?? null,
+        verifiedAt: data.verifiedAt,
         wallet: {
           id: data.wallet.id,
           verified: data.wallet.verified,
-          verificationMethod: data.wallet.verificationMethod ?? null
+          verificationMethod: data.wallet.verificationMethod
         }
       };
     }, "wallets.submitProof");
@@ -1439,14 +1481,14 @@ var WalletsResource = class extends BaseResource {
   async getVerification(verificationId) {
     return this.execute(async () => {
       this.debug("wallets.getVerification", verificationId);
-      const response = await this.api.getVerification({ verificationId });
+      const response = await this.api.getVerificationStatus({ verificationId });
       const data = unwrapResponse(response);
       return {
         id: data.id,
         walletId: data.walletId,
         method: data.method,
         status: data.status,
-        expiresAt: data.expiresAt,
+        expiresAt: data.expiresAt ?? null,
         completedAt: data.completedAt,
         failedAt: data.failedAt,
         failureReason: data.failureReason
@@ -1529,32 +1571,42 @@ var WalletsResource = class extends BaseResource {
     }, "wallets.ensureVerified");
   }
   /**
-   * Register wallet and complete verification with a signature
+   * Register wallet and complete verification in a single atomic operation
    *
-   * This is a convenience method for server-side verification when you
-   * already have the user's signature (e.g., from a frontend signing flow).
+   * This method creates a NEW challenge internally and verifies the signature
+   * against that challenge. It is designed for server-controlled signing
+   * scenarios (custodial wallets, automated systems) where you can sign the
+   * challenge message in the same execution context.
    *
-   * Combines: create → initiateVerification → submitProof in one call.
+   * **WARNING:** Do NOT use this after calling `ensureVerified()` or
+   * `initiateVerification()`. Each call creates a new challenge with a unique
+   * nonce, so signatures from previous challenges will fail verification.
+   *
+   * For browser-based user wallet verification, use the two-step flow:
+   * 1. Call `ensureVerified()` to get the challenge
+   * 2. User signs the challenge message in their wallet
+   * 3. Call `submitProof(challenge.verificationId, { signature })`
    *
    * @example
    * ```typescript
-   * // Frontend: User signs message
-   * const challenge = await passage.wallets.ensureVerified({ address: '0x...' });
-   * if (!challenge.verified) {
-   *   const signature = await walletClient.signMessage({
-   *     message: challenge.challenge.challenge.message,
-   *   });
-   *   // Send signature to backend
-   * }
-   *
-   * // Backend: Complete verification
+   * // For custodial/server-controlled wallets only
    * const result = await passage.wallets.verifyWithSignature({
-   *   address: '0x...',
+   *   address: custodialWalletAddress,
    *   chain: 'base',
-   *   signature: signatureFromFrontend,
+   *   signature: await custodialSigner.signMessage(challengeMessage),
    * });
    *
    * console.log(result.wallet.verified); // true
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // For browser-based user wallets, use ensureVerified + submitProof instead:
+   * const result = await passage.wallets.ensureVerified({ address: '0x...' });
+   * if (!result.verified) {
+   *   const signature = await userWallet.signMessage(result.challenge.challenge.message);
+   *   await passage.wallets.submitProof(result.challenge.verificationId, { signature });
+   * }
    * ```
    */
   async verifyWithSignature(params) {
@@ -1581,6 +1633,100 @@ var WalletsResource = class extends BaseResource {
         wallet: updatedWallet
       };
     }, "wallets.verifyWithSignature");
+  }
+  // =========================================================================
+  // AOPP Methods
+  // =========================================================================
+  /**
+   * Initiate AOPP verification
+   *
+   * Returns a challenge with an aoppUri that can be displayed as a QR code.
+   * The user scans this with an AOPP-compatible wallet (Ledger Live, BitBox),
+   * and the wallet POSTs the signature directly to our callback URL.
+   *
+   * After displaying the QR code, poll with `waitForAOPPVerification()` to
+   * detect when the user completes verification.
+   *
+   * @example
+   * ```typescript
+   * import { isAOPPChallenge } from '@portola/passage-neobank';
+   *
+   * const challenge = await passage.wallets.initiateAOPPVerification('wal_123');
+   *
+   * if (isAOPPChallenge(challenge.challenge)) {
+   *   // Display QR code with challenge.challenge.aoppUri
+   *   showQRCode(challenge.challenge.aoppUri);
+   *
+   *   // Poll for completion (user signs in their wallet app)
+   *   const result = await passage.wallets.waitForAOPPVerification(
+   *     challenge.verificationId,
+   *     { timeout: 600000 } // 10 minutes
+   *   );
+   *
+   *   if (result.status === 'VERIFIED') {
+   *     console.log('Wallet verified via AOPP!');
+   *   }
+   * }
+   * ```
+   */
+  async initiateAOPPVerification(walletId) {
+    return this.execute(async () => {
+      this.debug("wallets.initiateAOPPVerification", walletId);
+      const response = await this.api.initiateVerification({
+        walletId,
+        initiateVerificationRequest: { method: "AOPP" }
+      });
+      const data = unwrapResponse(response);
+      return {
+        verificationId: data.verificationId,
+        walletId: data.walletId,
+        method: data.method,
+        status: data.status,
+        challenge: data.challenge,
+        expiresAt: data.expiresAt
+      };
+    }, "wallets.initiateAOPPVerification");
+  }
+  /**
+   * Poll for AOPP verification completion
+   *
+   * Since AOPP callbacks go directly to the server (not through the frontend),
+   * this method polls the verification status until it completes, fails, or times out.
+   *
+   * @param verificationId - The verification ID from initiateAOPPVerification
+   * @param options - Polling options
+   * @param options.timeout - Max time to wait in ms (default: 600000 = 10 minutes)
+   * @param options.interval - Poll interval in ms (default: 2000 = 2 seconds)
+   * @param options.onPoll - Optional callback on each poll (for showing countdown)
+   *
+   * @example
+   * ```typescript
+   * const result = await passage.wallets.waitForAOPPVerification(verificationId, {
+   *   timeout: 600000, // 10 minutes
+   *   interval: 2000,  // Check every 2 seconds
+   *   onPoll: (verification) => {
+   *     console.log(`Status: ${verification.status}, expires: ${verification.expiresAt}`);
+   *   },
+   * });
+   * ```
+   */
+  async waitForAOPPVerification(verificationId, options = {}) {
+    const { timeout = 6e5, interval = 2e3, onPoll } = options;
+    const startTime = Date.now();
+    return this.execute(async () => {
+      this.debug("wallets.waitForAOPPVerification", verificationId);
+      while (Date.now() - startTime < timeout) {
+        const verification = await this.getVerification(verificationId);
+        if (onPoll) {
+          onPoll(verification);
+        }
+        if (verification.status === "VERIFIED" || verification.status === "FAILED" || verification.status === "EXPIRED") {
+          return verification;
+        }
+        await new Promise((resolve) => setTimeout(resolve, interval));
+      }
+      return this.getVerification(verificationId);
+    }, "wallets.waitForAOPPVerification");
   }
   /**
    * Map API wallet data to Wallet type
@@ -1635,7 +1781,7 @@ var Passage = class {
     const walletsApi = new WalletsApi(this.sdkConfig);
     this.applications = new ApplicationsResource(applicationsApi, this.config);
     this.offers = new OffersResource(offersApi, this.config);
-    this.loans = new LoansResource(loansApi, this.config);
+    this.loans = new LoansResource(loansApi, applicationsApi, this.config);
     this.lenders = new LendersResource(entityDiscoveryApi, this.config);
     this.account = new AccountResource(selfServiceApi, this.config);
     this.signing = new SigningResource(signingApi, this.config);

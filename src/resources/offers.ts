@@ -1,4 +1,4 @@
-import type { OffersApi } from '@portola/passage';
+import type { OffersApi, FinalOfferAcceptanceResponseData } from '@portola/passage';
 import type {
   EncryptedOffersResponse,
   OfferAcceptanceResponse,
@@ -61,7 +61,8 @@ export class OffersResource extends BaseResource {
   /**
    * Accept a prequalified offer to proceed to final underwriting
    *
-   * Requires hard pull consent from the borrower.
+   * Requires hard pull consent from the borrower. This triggers the lender
+   * to perform a hard credit pull and submit final offers.
    *
    * @example
    * ```typescript
@@ -71,6 +72,11 @@ export class OffersResource extends BaseResource {
    *     consentedAt: new Date().toISOString(),
    *     ipAddress: req.ip,
    *     userAgent: req.headers['user-agent'],
+   *   },
+   *   // Optional: provide wallet for disbursement if not set at application creation
+   *   borrowerWallet: {
+   *     address: '0x1234...',
+   *     chain: 'base',
    *   },
    * });
    * // Application moves to final underwriting
@@ -88,6 +94,10 @@ export class OffersResource extends BaseResource {
         offerAcceptanceRequest: {
           hardPullConsent: params.hardPullConsent,
           communicationPreferences: params.communicationPreferences,
+          borrowerWallet: params.borrowerWallet,
+          borrowerEmail: params.borrowerEmail,
+          borrowerName: params.borrowerName,
+          requestedDisbursement: params.requestedDisbursement,
         },
       });
 
@@ -118,40 +128,40 @@ export class OffersResource extends BaseResource {
    * Accept a final offer to proceed to signing
    *
    * This is the point of no return - the borrower commits to the loan terms.
+   * Returns signing session details including the URL to redirect the borrower.
+   *
+   * Note: hardPullConsent and borrowerWallet should have been provided when
+   * accepting the prequalified offer via acceptPrequal().
    *
    * @example
    * ```typescript
    * const result = await passage.offers.acceptFinal(offerId, {
-   *   hardPullConsent: {
-   *     consented: true,
-   *     consentedAt: new Date().toISOString(),
-   *     ipAddress: req.ip,
-   *     userAgent: req.headers['user-agent'],
-   *   },
-   *   borrowerWallet: {
-   *     address: '0x1234...',
-   *     chain: 'polygon',
-   *   },
+   *   borrowerEmail: 'borrower@example.com',
+   *   borrowerName: 'John Doe',
    * });
+   *
+   * // Redirect borrower to sign documents
+   * if (result.signingUrl) {
+   *   console.log('Sign at:', result.signingUrl);
+   * }
    * ```
    */
   async acceptFinal(
     offerId: string,
-    params: FinalOfferAcceptParams
-  ): Promise<OfferAcceptanceResponseData> {
+    params: FinalOfferAcceptParams = {}
+  ): Promise<FinalOfferAcceptanceResponseData> {
     return this.execute(async () => {
       this.debug('offers.acceptFinal', offerId);
 
       const response = await this.api.acceptFinalOffer({
         offerId,
-        offerAcceptanceRequest: {
-          hardPullConsent: params.hardPullConsent,
-          borrowerWallet: params.borrowerWallet,
-          communicationPreferences: params.communicationPreferences,
+        finalOfferAcceptanceRequest: {
+          borrowerEmail: params.borrowerEmail,
+          borrowerName: params.borrowerName,
         },
       });
 
-      // Response is AxiosResponse<OfferAcceptanceResponse>
+      // Response is AxiosResponse<FinalOfferAcceptanceResponse>
       return unwrapResponse(response);
     }, 'offers.acceptFinal');
   }

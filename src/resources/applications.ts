@@ -3,9 +3,8 @@ import type {
   ApplicationResponse,
   ApplicationSubmitResponse,
   ApplicationSubmitResponseData,
-  ListApplications200Response,
+  ApplicationListResponse,
   DraftSubmitResponse,
-  DraftSubmitResponseData,
   ApplicationStatusUpdateResponse,
   ApplicationStatusUpdateResponseData,
 } from '@portola/passage';
@@ -167,13 +166,13 @@ export class ApplicationsResource extends BaseResource {
     params?: {
       perLenderKycHandles?: Array<{ lenderId: string; handle: string }>;
     }
-  ): Promise<DraftSubmitResponseData> {
+  ): Promise<ApplicationSubmitResponseData> {
     return this.execute(async () => {
       this.debug('applications.submitDraft', applicationId);
 
       const response = await this.api.submitDraftApplication({
         applicationId,
-        draftSubmitRequest: {
+        applicationSubmitRequest: {
           perLenderKycHandles: params?.perLenderKycHandles,
         },
       });
@@ -205,7 +204,7 @@ export class ApplicationsResource extends BaseResource {
 
       const response = await this.api.updateApplicationStatus({
         applicationId,
-        updateApplicationStatusRequest: { status },
+        applicationStatusUpdateRequest: { status },
       });
 
       // Response is AxiosResponse<ApplicationStatusUpdateResponse>
@@ -228,5 +227,39 @@ export class ApplicationsResource extends BaseResource {
    */
   async cancel(applicationId: string): Promise<ApplicationStatusUpdateResponseData> {
     return this.updateStatus(applicationId, 'CANCELLED');
+  }
+
+  /**
+   * Get the loan associated with an application
+   *
+   * Returns the loan that was created when this application was funded.
+   * Returns null if the application hasn't been funded yet.
+   *
+   * @example
+   * ```typescript
+   * // Check if application has a loan
+   * const loan = await passage.applications.getLoan('app_123');
+   * if (loan) {
+   *   console.log(`Loan ${loan.id} - Principal: $${loan.principal}`);
+   * } else {
+   *   console.log('Application not yet funded');
+   * }
+   * ```
+   */
+  async getLoan(applicationId: string): Promise<import('@portola/passage').Loan | null> {
+    return this.execute(async () => {
+      this.debug('applications.getLoan', applicationId);
+
+      try {
+        const response = await this.api.getLoanByApplication({ applicationId });
+        return unwrapResponse(response);
+      } catch (error: any) {
+        // Return null for 404 (no loan yet) instead of throwing
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    }, 'applications.getLoan');
   }
 }

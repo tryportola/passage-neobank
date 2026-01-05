@@ -1,25 +1,17 @@
 import type { WalletsApi } from '@portola/passage';
 import type {
-  WalletResponse,
-  WalletListResponse,
-  WalletData,
-  VerificationChallengeResponse,
-  VerificationChallengeData,
-  VerificationStatusResponse,
-  VerificationStatusData,
-  VerificationProofResponse,
-  VerificationProofData,
-  VerificationListResponse,
+  WalletResponseData,
   WalletType,
   WalletVerificationMethod,
   WalletVerificationStatus,
   Chain,
+  WalletChain,
 } from '@portola/passage';
 import type { ResolvedConfig } from '../config';
 import { BaseResource, unwrapResponse } from './base';
 
 // Re-export types for convenience
-export type { WalletVerificationMethod, WalletVerificationStatus, Chain };
+export type { WalletVerificationMethod, WalletVerificationStatus, Chain, WalletChain };
 // Note: WalletType is also exported but users can import from @portola/passage directly
 
 /**
@@ -44,7 +36,8 @@ export interface Wallet {
  */
 export interface CreateWalletParams {
   address: string;
-  chain?: Chain;
+  /** Blockchain chain for the wallet (e.g., 'base', 'ethereum', 'polygon') */
+  chain?: WalletChain;
   type?: WalletType;
   externalId?: string;
   label?: string;
@@ -131,10 +124,10 @@ export interface Verification {
   walletId: string;
   method: WalletVerificationMethod;
   status: WalletVerificationStatus;
-  expiresAt: string;
-  completedAt?: string | null;
-  failedAt?: string | null;
-  failureReason?: string | null;
+  expiresAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  failureReason: string | null;
 }
 
 /**
@@ -272,9 +265,16 @@ export class WalletsResource extends BaseResource {
     return this.execute(async () => {
       this.debug('wallets.list', params);
 
+      // API expects 'true' | 'false' string instead of boolean for verified filter
+      const verifiedParam = params.verified === undefined
+        ? undefined
+        : params.verified
+          ? ('true' as const)
+          : ('false' as const);
+
       const response = await this.api.listWallets({
-        verified: params.verified,
-        chain: params.chain,
+        verified: verifiedParam,
+        chain: params.chain as 'base' | 'ethereum' | 'polygon' | 'arbitrum' | 'optimism' | 'solana' | undefined,
         externalId: params.externalId,
         address: params.address,
         limit: params.limit,
@@ -283,7 +283,7 @@ export class WalletsResource extends BaseResource {
 
       const data = unwrapResponse(response);
       return {
-        wallets: data.wallets.map((w: WalletData) => this.mapWallet(w)),
+        wallets: data.wallets.map((w: WalletResponseData) => this.mapWallet(w)),
         pagination: data.pagination,
       };
     }, 'wallets.list');
@@ -343,7 +343,7 @@ export class WalletsResource extends BaseResource {
     return this.execute(async () => {
       this.debug('wallets.initiateVerification', walletId, params.method);
 
-      const response = await this.api.initiateWalletVerification({
+      const response = await this.api.initiateVerification({
         walletId,
         initiateVerificationRequest: { method: params.method },
       });
@@ -352,8 +352,8 @@ export class WalletsResource extends BaseResource {
       return {
         verificationId: data.verificationId,
         walletId: data.walletId,
-        method: data.method,
-        status: data.status,
+        method: data.method as WalletVerificationMethod,
+        status: data.status as WalletVerificationStatus,
         challenge: data.challenge,
         expiresAt: data.expiresAt,
       };
@@ -393,11 +393,11 @@ export class WalletsResource extends BaseResource {
       return {
         verificationId: data.verificationId,
         status: data.status,
-        verifiedAt: data.verifiedAt ?? null,
+        verifiedAt: data.verifiedAt,
         wallet: {
           id: data.wallet.id,
           verified: data.wallet.verified,
-          verificationMethod: data.wallet.verificationMethod ?? null,
+          verificationMethod: data.wallet.verificationMethod,
         },
       };
     }, 'wallets.submitProof');
@@ -416,15 +416,15 @@ export class WalletsResource extends BaseResource {
     return this.execute(async () => {
       this.debug('wallets.getVerification', verificationId);
 
-      const response = await this.api.getVerification({ verificationId });
+      const response = await this.api.getVerificationStatus({ verificationId });
       const data = unwrapResponse(response);
 
       return {
         id: data.id,
         walletId: data.walletId,
-        method: data.method,
-        status: data.status,
-        expiresAt: data.expiresAt,
+        method: data.method as WalletVerificationMethod,
+        status: data.status as WalletVerificationStatus,
+        expiresAt: data.expiresAt ?? null,
         completedAt: data.completedAt,
         failedAt: data.failedAt,
         failureReason: data.failureReason,
@@ -454,8 +454,8 @@ export class WalletsResource extends BaseResource {
       return {
         verifications: data.verifications.map((v) => ({
           id: v.id,
-          method: v.method,
-          status: v.status,
+          method: v.method as WalletVerificationMethod,
+          status: v.status as WalletVerificationStatus,
           initiatedAt: v.initiatedAt,
           completedAt: v.completedAt ?? null,
           expiresAt: v.expiresAt,
@@ -642,7 +642,7 @@ export class WalletsResource extends BaseResource {
     return this.execute(async () => {
       this.debug('wallets.initiateAOPPVerification', walletId);
 
-      const response = await this.api.initiateWalletVerification({
+      const response = await this.api.initiateVerification({
         walletId,
         initiateVerificationRequest: { method: 'AOPP' },
       });
@@ -651,8 +651,8 @@ export class WalletsResource extends BaseResource {
       return {
         verificationId: data.verificationId,
         walletId: data.walletId,
-        method: data.method,
-        status: data.status,
+        method: data.method as WalletVerificationMethod,
+        status: data.status as WalletVerificationStatus,
         challenge: data.challenge,
         expiresAt: data.expiresAt,
       };

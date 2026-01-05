@@ -91,9 +91,8 @@ export type {
 
   // Re-export SDK types for consumers
   ApplicationStatus,
-  ApplicationRequestProductTypeEnum as ProductType,
-  ApplicationRequestEncryptedPayloadsInner as EncryptedPayloadInput,
-  ApplicationStatusUpdateResponseData,
+  ProductType,
+  EncryptedPayload as EncryptedPayloadInput,
   WalletType,
 
   // Offers
@@ -104,6 +103,7 @@ export type {
   PrequalAcceptParams,
   FinalOfferAcceptParams,
   OfferAcceptanceResponseData,
+  FinalOfferAcceptanceResponseData,
 
   // Loans
   LoanStatus,
@@ -112,16 +112,14 @@ export type {
   // Lenders
   Lender,
   LenderListParams,
-  LenderDetail,
-  LenderDetailPublicKey,
   LenderPublicKeyResponse,
-  LenderPublicKeyResponseData,
 
   // Account
   AccountInfo,
   WebhookConfig,
-  WebhookTestResponseData,
-  WebhookSecretRotateResponseData,
+
+  // Repayments
+  Repayment,
 
   // Encryption (re-exported from crypto/types.ts)
   HybridEncryptedPayload,
@@ -165,11 +163,58 @@ export type {
   VerificationResult,
   WalletVerificationMethod,
   WalletVerificationStatus,
+  /**
+   * Blockchain network identifier for wallet queries and filtering.
+   *
+   * Use `Chain` for read operations (listing, filtering wallets).
+   * Use `WalletChain` for write operations (creating wallets).
+   *
+   * @example
+   * ```typescript
+   * // Filtering wallets by chain
+   * const { wallets } = await passage.wallets.list({ chain: 'base' });
+   * ```
+   */
   Chain,
+  /**
+   * Blockchain network for wallet creation.
+   *
+   * Use `WalletChain` for write operations (creating wallets).
+   * Use `Chain` for read operations (listing, filtering).
+   *
+   * @example
+   * ```typescript
+   * // Creating a wallet on a specific chain
+   * const wallet = await passage.wallets.create({
+   *   address: '0x...',
+   *   chain: 'base',
+   * });
+   * ```
+   */
+  WalletChain,
 } from './resources/wallets';
 
-// Re-export wallet verification WalletType enum from SDK
-// (different from the legacy WalletType alias for application wallet custody)
+/**
+ * Wallet ownership type for the Wallet Verification system.
+ *
+ * Indicates whether a wallet is owned by an individual or an entity (e.g., exchange).
+ * Used when registering wallets for ownership verification.
+ *
+ * **Note:** This is different from `WalletType` in application creation, which refers
+ * to the custody model (custodial vs non-custodial) for loan disbursement.
+ *
+ * Values: `'INDIVIDUAL'` | `'ENTITY'`
+ *
+ * @example
+ * ```typescript
+ * const wallet = await passage.wallets.create({
+ *   address: '0x...',
+ *   type: 'INDIVIDUAL', // WalletOwnershipType
+ * });
+ * ```
+ *
+ * @see WalletType - For application wallet custody model (different concept)
+ */
 export {
   WalletType as WalletOwnershipType,
 } from '@portola/passage';
@@ -177,18 +222,21 @@ export {
 // Re-export Loan type directly from SDK to avoid duplicate issues
 export type { Loan } from '@portola/passage';
 
+// Re-export AccountStatsData for account.getStats() return type
+export type { AccountStatsData } from '@portola/passage';
+
 // Re-export KYC types for neobank consumers (neobank-facing endpoints)
 export type {
   KYCProvidersResponse,
-  KYCProvidersResponseData,
-  KYCProvidersResponseDataProvidersInner,
+  KYCProvidersData,
+  KYCProvider,
   KYCStatusResponse,
-  KYCStatusResponseData,
-  KYCStatusResponseDataStatusEnum,
-  KYCStatusResponseDataAttestationsInner,
+  KYCStatusData,
+  KYCStatus,
+  KYCStatusAttestation,
   KYCInitiateResponse,
-  KYCInitiateResponseData,
+  KYCInitiateData,
   KYCHandleRequest,
   KYCHandleResponse,
-  KYCHandleResponseData,
+  KYCHandleData,
 } from '@portola/passage';

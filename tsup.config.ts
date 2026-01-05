@@ -3,6 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
+    'types/index': 'src/types/index.ts',
     'crypto/index': 'src/crypto/index.ts',
     'webhooks/index': 'src/webhooks/index.ts',
   },
