@@ -216,9 +216,12 @@ type ApplicationListItemType = _portola_passage.ApplicationListItem;
  */
 type OffersResponse = _portola_passage.EncryptedOffersResponseData;
 /**
- * Single offer from a lender
+ * Single offer from a lender (response type with full offer details)
+ *
+ * Note: EncryptedOfferResponse is the response type with offerId, status, etc.
+ * EncryptedOffer is the request type used when lenders submit offers.
  */
-type Offer = _portola_passage.EncryptedOffer;
+type Offer = _portola_passage.EncryptedOfferResponse;
 /**
  * Lender with offers grouped
  */
@@ -238,23 +241,26 @@ type Lender = _portola_passage.LenderListItem;
 /**
  * Repayment data from a loan
  *
- * Note: Receipt data (fee breakdown) is lender-only and not available to neobanks.
- * See tickets/repayment-receipt-storage.md for planned improvements.
+ * Matches the controller output from loanController.listLoanRepayments
  */
 interface Repayment {
     id: string;
+    loanId: string;
     bridgeDrainId: string;
     amount: string;
     currency: string;
-    state: string;
-    fromAddress: string | null;
+    sourceAddress: string | null;
     sourceChain: string | null;
     depositTxHash: string | null;
     destinationTxHash: string | null;
     principalPortion: string | null;
     interestPortion: string | null;
+    balanceBefore: string | null;
+    balanceAfter: string | null;
     receivedAt: string;
     completedAt: string | null;
+    status: string;
+    createdAt: string;
 }
 
 /**
@@ -1012,4 +1018,4 @@ declare class WalletsResource extends BaseResource {
     private mapWallet;
 }
 
-export { type ApplicationListParams as A, BaseResource as B, type CommunicationPreferences as C, type CreateWalletParams as D, type EncryptedPIIPayload as E, type FinalOfferAcceptParams as F, type ListWalletsParams as G, type HardPullConsent as H, type Verification as I, type VerificationSummary as J, type VerificationResult as K, type LoanListParams as L, type ApplicationListItemType as M, type MessageSignChallenge as N, type OffersResponse as O, type PrequalAcceptParams as P, type AOPPChallenge as Q, type ResolvedConfig as R, SigningResource as S, isAOPPChallenge as T, type UpdateWalletParams as U, type VerificationChallenge as V, type WebhookConfig as W, isMessageSignChallenge as X, type Application as a, type ApplicationCreateParams as b, type Repayment as c, type PaymentScheduleItem as d, type LenderListParams as e, type Lender as f, type AccountInfo as g, SDXResource as h, WalletsResource as i, type PassageClientConfig as j, type PaginationParams as k, type WalletType as l, type Offer as m, type LenderOffers as n, type BorrowerWallet as o, type SDXUploadToken as p, type SDXUploadResult as q, type SDXDocumentType as r, type SDXTokenParams as s, type SDXUploadParams as t, type SDXDownloadParams as u, type StoreKYCHandleParams as v, type SigningSession as w, type SigningSessionStatus as x, type SigningSessionCreateParams as y, type Wallet as z };
+export { type ApplicationListParams as A, BaseResource as B, type CommunicationPreferences as C, type CreateWalletParams as D, type EncryptedPIIPayload as E, type FinalOfferAcceptParams as F, type ListWalletsParams as G, type HardPullConsent as H, type AOPPChallenge as I, type Verification as J, type VerificationSummary as K, type LoanListParams as L, type MessageSignChallenge as M, type VerificationResult as N, type OffersResponse as O, type PrequalAcceptParams as P, isAOPPChallenge as Q, type ResolvedConfig as R, SigningResource as S, isMessageSignChallenge as T, type UpdateWalletParams as U, type VerificationChallenge as V, type WebhookConfig as W, type ApplicationListItemType as X, type Application as a, type ApplicationCreateParams as b, type Repayment as c, type PaymentScheduleItem as d, type LenderListParams as e, type Lender as f, type AccountInfo as g, SDXResource as h, WalletsResource as i, type PassageClientConfig as j, type PaginationParams as k, type WalletType as l, type Offer as m, type LenderOffers as n, type BorrowerWallet as o, type SDXUploadToken as p, type SDXUploadResult as q, type SDXDocumentType as r, type SDXTokenParams as s, type SDXUploadParams as t, type SDXDownloadParams as u, type StoreKYCHandleParams as v, type SigningSession as w, type SigningSessionStatus as x, type SigningSessionCreateParams as y, type Wallet as z };

@@ -6,7 +6,7 @@ import { P as PassageError } from '../errors-DgbLNkc1.js';
  * These types match the actual events sent by the Passage API.
  * @see packages/shared/src/validators/webhook-payloads.ts for source of truth
  */
-type WebhookEventType = 'application.created' | 'application.routed' | 'application.approved' | 'application.rejected' | 'application.declined' | 'offer.received' | 'offer.accepted' | 'offer.rejected' | 'prequal_offer.received' | 'prequal_offer.accepted' | 'final_offer.received' | 'final_offer.required' | 'final_offer.accepted' | 'esign.required' | 'esign.completed' | 'signing.ready' | 'signing.completed' | 'kyc.attestation_available' | 'funding.initiated' | 'funding.completed' | 'funding.failed' | 'funding.required' | 'funding.disbursing' | 'funding.disbursed' | 'funding.declined' | 'funding.insufficient_balance' | 'loan.created' | 'loan.creation_failed' | 'loan.repayment_address_ready' | 'loan.repayment_received' | 'loan.paid_off' | 'loan.status_changed' | 'loan.infrastructure_failed' | 'test';
+type WebhookEventType = 'application.created' | 'application.routed' | 'application.approved' | 'application.rejected' | 'application.declined' | 'offer.received' | 'offer.accepted' | 'offer.rejected' | 'prequal_offer.received' | 'prequal_offer.accepted' | 'final_offer.received' | 'final_offer.required' | 'final_offer.accepted' | 'esign.required' | 'esign.completed' | 'signing.ready' | 'signing.completed' | 'kyc.attestation_available' | 'funding.initiated' | 'funding.completed' | 'funding.failed' | 'funding.required' | 'funding.disbursing' | 'funding.disbursed' | 'funding.declined' | 'funding.insufficient_balance' | 'loan.created' | 'loan.creation_failed' | 'loan.repayment_address_ready' | 'loan.repayment_received' | 'loan.paid_off' | 'loan.status_changed' | 'loan.infrastructure_failed' | 'wallet.verification.initiated' | 'wallet.verification.completed' | 'wallet.verification.failed' | 'wallet.verification.expired' | 'wallet.verification.revoked' | 'test';
 /**
  * Base webhook event structure
  */
@@ -355,6 +355,69 @@ interface LoanInfrastructureFailedData {
     retryCount?: number;
 }
 /**
+ * Verification method type
+ * @see packages/shared/src/validators/webhook-payloads.ts
+ */
+type WalletVerificationMethod = 'MESSAGE_SIGN' | 'MICRO_DEPOSIT' | 'AOPP';
+/**
+ * Verification status type
+ */
+type WalletVerificationStatus = 'PENDING' | 'AWAITING_CONFIRMATION' | 'VERIFIED' | 'FAILED' | 'EXPIRED';
+/**
+ * wallet.verification.initiated - Verification challenge created
+ */
+interface WalletVerificationInitiatedData {
+    verificationId: string;
+    walletId: string;
+    walletAddress: string;
+    method: WalletVerificationMethod;
+    status: WalletVerificationStatus;
+}
+/**
+ * wallet.verification.completed - Wallet successfully verified
+ */
+interface WalletVerificationCompletedData {
+    verificationId: string;
+    walletId: string;
+    walletAddress: string;
+    method: WalletVerificationMethod;
+    status: WalletVerificationStatus;
+    completedAt: string;
+}
+/**
+ * wallet.verification.failed - Verification failed (bad signature, etc.)
+ */
+interface WalletVerificationFailedData {
+    verificationId: string;
+    walletId: string;
+    walletAddress: string;
+    method: WalletVerificationMethod;
+    status: WalletVerificationStatus;
+    failureReason: string;
+}
+/**
+ * wallet.verification.expired - Verification challenge expired
+ */
+interface WalletVerificationExpiredData {
+    verificationId: string;
+    walletId: string;
+    walletAddress: string;
+    method: WalletVerificationMethod;
+    status: WalletVerificationStatus;
+}
+/**
+ * wallet.verification.revoked - Verification revoked by admin
+ */
+interface WalletVerificationRevokedData {
+    verificationId: string;
+    walletId: string;
+    walletAddress: string;
+    method: WalletVerificationMethod;
+    status: WalletVerificationStatus;
+    reason: string;
+    revokedBy: string;
+}
+/**
  * test - Test webhook event
  */
 interface TestWebhookData {
@@ -475,4 +538,4 @@ declare class WebhookHandler {
     };
 }
 
-export { type ApplicationApprovedData, type ApplicationCreatedData, type ApplicationDeclinedData, type ApplicationRejectedData, type ApplicationRoutedData, type ESignCompletedData, type ESignRequiredData, type FinalOfferAcceptedData, type FinalOfferReceivedData, type FinalOfferRequiredData, type FundingCompletedData, type FundingDeclinedData, type FundingDisbursedData, type FundingDisbursingData, type FundingFailedData, type FundingInitiatedData, type FundingInsufficientBalanceData, type FundingRequiredData, type KYCAttestationAvailableData, type LoanCreatedData, type LoanCreationFailedData, type LoanInfrastructureFailedData, type LoanPaidOffData, type LoanRepaymentAddressReadyData, type LoanRepaymentReceivedData, type LoanStatusChangedData, type OfferAcceptedData, type OfferReceivedData, type OfferRejectedData, type PrequalOfferAcceptedData, type PrequalOfferReceivedData, type SigningCompletedData, type SigningReadyData, type TestWebhookData, type WebhookEvent, type WebhookEventType, WebhookHandler, type WebhookHandlerConfig, WebhookSignatureError };
+export { type ApplicationApprovedData, type ApplicationCreatedData, type ApplicationDeclinedData, type ApplicationRejectedData, type ApplicationRoutedData, type ESignCompletedData, type ESignRequiredData, type FinalOfferAcceptedData, type FinalOfferReceivedData, type FinalOfferRequiredData, type FundingCompletedData, type FundingDeclinedData, type FundingDisbursedData, type FundingDisbursingData, type FundingFailedData, type FundingInitiatedData, type FundingInsufficientBalanceData, type FundingRequiredData, type KYCAttestationAvailableData, type LoanCreatedData, type LoanCreationFailedData, type LoanInfrastructureFailedData, type LoanPaidOffData, type LoanRepaymentAddressReadyData, type LoanRepaymentReceivedData, type LoanStatusChangedData, type OfferAcceptedData, type OfferReceivedData, type OfferRejectedData, type PrequalOfferAcceptedData, type PrequalOfferReceivedData, type SigningCompletedData, type SigningReadyData, type TestWebhookData, type WalletVerificationCompletedData, type WalletVerificationExpiredData, type WalletVerificationFailedData, type WalletVerificationInitiatedData, type WalletVerificationRevokedData, type WebhookEvent, type WebhookEventType, WebhookHandler, type WebhookHandlerConfig, WebhookSignatureError };

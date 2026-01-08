@@ -1291,6 +1291,12 @@ var SDXResource = class extends BaseResource {
 };
 
 // src/resources/wallets.ts
+function isAOPPChallenge(challenge) {
+  return "aoppUri" in challenge;
+}
+function isMessageSignChallenge(challenge) {
+  return "nonce" in challenge && "signingStandard" in challenge;
+}
 var WalletsResource = class extends BaseResource {
   constructor(api, config) {
     super(config);
@@ -1836,5 +1842,7 @@ exports.RateLimitError = RateLimitError;
 exports.TimeoutError = TimeoutError;
 exports.ValidationError = ValidationError;
 exports.default = Passage;
+exports.isAOPPChallenge = isAOPPChallenge;
+exports.isMessageSignChallenge = isMessageSignChallenge;
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map

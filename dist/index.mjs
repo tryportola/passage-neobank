@@ -1284,6 +1284,12 @@ var SDXResource = class extends BaseResource {
 };
 
 // src/resources/wallets.ts
+function isAOPPChallenge(challenge) {
+  return "aoppUri" in challenge;
+}
+function isMessageSignChallenge(challenge) {
+  return "nonce" in challenge && "signingStandard" in challenge;
+}
 var WalletsResource = class extends BaseResource {
   constructor(api, config) {
     super(config);
@@ -1814,6 +1820,6 @@ var Passage = class {
   }
 };
 
-export { AuthenticationError, AuthorizationError, ConflictError, NetworkError, NotFoundError, Passage, PassageError, RateLimitError, TimeoutError, ValidationError, Passage as default };
+export { AuthenticationError, AuthorizationError, ConflictError, NetworkError, NotFoundError, Passage, PassageError, RateLimitError, TimeoutError, ValidationError, Passage as default, isAOPPChallenge, isMessageSignChallenge };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map
