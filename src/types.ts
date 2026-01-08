@@ -318,9 +318,12 @@ export type OffersResponse =
   import('@portola/passage').EncryptedOffersResponseData;
 
 /**
- * Single offer from a lender
+ * Single offer from a lender (response type with full offer details)
+ *
+ * Note: EncryptedOfferResponse is the response type with offerId, status, etc.
+ * EncryptedOffer is the request type used when lenders submit offers.
  */
-export type Offer = import('@portola/passage').EncryptedOffer;
+export type Offer = import('@portola/passage').EncryptedOfferResponse;
 
 /**
  * Lender with offers grouped
@@ -352,23 +355,31 @@ export type Lender = import('@portola/passage').LenderListItem;
 /**
  * Repayment data from a loan
  *
- * Note: Receipt data (fee breakdown) is lender-only and not available to neobanks.
- * See tickets/repayment-receipt-storage.md for planned improvements.
+ * Matches the controller output from loanController.listLoanRepayments
  */
 export interface Repayment {
   id: string;
+  loanId: string;
   bridgeDrainId: string;
   amount: string;
   currency: string;
-  state: string;
-  fromAddress: string | null;
+  sourceAddress: string | null;
   sourceChain: string | null;
   depositTxHash: string | null;
   destinationTxHash: string | null;
   principalPortion: string | null;
   interestPortion: string | null;
+  balanceBefore: string | null;
+  balanceAfter: string | null;
   receivedAt: string;
   completedAt: string | null;
+  status: string;
+  createdAt: string;
+  // Deprecated aliases for backward compatibility (will be removed in next major version)
+  /** @deprecated Use `sourceAddress` instead */
+  fromAddress?: string | null;
+  /** @deprecated Use `status` instead */
+  state?: string;
 }
 
 // ============================================================================
