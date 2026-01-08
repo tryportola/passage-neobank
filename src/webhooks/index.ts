@@ -47,6 +47,12 @@ export type {
   LoanPaidOffData,
   LoanStatusChangedData,
   LoanInfrastructureFailedData,
+  // Wallet verification events
+  WalletVerificationInitiatedData,
+  WalletVerificationCompletedData,
+  WalletVerificationFailedData,
+  WalletVerificationExpiredData,
+  WalletVerificationRevokedData,
   // Test event
   TestWebhookData,
 } from './types';

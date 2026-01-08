@@ -45,6 +45,12 @@ export type WebhookEventType =
   | 'loan.paid_off'
   | 'loan.status_changed'
   | 'loan.infrastructure_failed'
+  // Wallet verification events
+  | 'wallet.verification.initiated'
+  | 'wallet.verification.completed'
+  | 'wallet.verification.failed'
+  | 'wallet.verification.expired'
+  | 'wallet.verification.revoked'
   // Test event
   | 'test';
 
@@ -455,6 +461,80 @@ export interface LoanInfrastructureFailedData {
   error: string | null;
   message: string;
   retryCount?: number;
+}
+
+// ============================================================================
+// Wallet Verification Event Data Types
+// ============================================================================
+
+/**
+ * Verification method type
+ * @see packages/shared/src/validators/webhook-payloads.ts
+ */
+type WalletVerificationMethod = 'MESSAGE_SIGN' | 'MICRO_DEPOSIT' | 'AOPP';
+
+/**
+ * Verification status type
+ */
+type WalletVerificationStatus = 'PENDING' | 'AWAITING_CONFIRMATION' | 'VERIFIED' | 'FAILED' | 'EXPIRED';
+
+/**
+ * wallet.verification.initiated - Verification challenge created
+ */
+export interface WalletVerificationInitiatedData {
+  verificationId: string;
+  walletId: string;
+  walletAddress: string;
+  method: WalletVerificationMethod;
+  status: WalletVerificationStatus;
+}
+
+/**
+ * wallet.verification.completed - Wallet successfully verified
+ */
+export interface WalletVerificationCompletedData {
+  verificationId: string;
+  walletId: string;
+  walletAddress: string;
+  method: WalletVerificationMethod;
+  status: WalletVerificationStatus;
+  completedAt: string;
+}
+
+/**
+ * wallet.verification.failed - Verification failed (bad signature, etc.)
+ */
+export interface WalletVerificationFailedData {
+  verificationId: string;
+  walletId: string;
+  walletAddress: string;
+  method: WalletVerificationMethod;
+  status: WalletVerificationStatus;
+  failureReason: string;
+}
+
+/**
+ * wallet.verification.expired - Verification challenge expired
+ */
+export interface WalletVerificationExpiredData {
+  verificationId: string;
+  walletId: string;
+  walletAddress: string;
+  method: WalletVerificationMethod;
+  status: WalletVerificationStatus;
+}
+
+/**
+ * wallet.verification.revoked - Verification revoked by admin
+ */
+export interface WalletVerificationRevokedData {
+  verificationId: string;
+  walletId: string;
+  walletAddress: string;
+  method: WalletVerificationMethod;
+  status: WalletVerificationStatus;
+  reason: string;
+  revokedBy: string;
 }
 
 // ============================================================================

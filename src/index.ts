@@ -158,6 +158,8 @@ export type {
   UpdateWalletParams,
   ListWalletsParams,
   VerificationChallenge,
+  MessageSignChallenge,
+  AOPPChallenge,
   Verification,
   VerificationSummary,
   VerificationResult,
@@ -192,6 +194,12 @@ export type {
    * ```
    */
   WalletChain,
+} from './resources/wallets';
+
+// Wallet type guards (for distinguishing challenge types)
+export {
+  isAOPPChallenge,
+  isMessageSignChallenge,
 } from './resources/wallets';
 
 /**
