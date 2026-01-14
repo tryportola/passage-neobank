@@ -58,7 +58,9 @@ export class ApplicationsResource extends BaseResource {
 
       const response = await this.api.listApplications({
         limit: params?.limit,
-        offset: params?.offset,
+        // Note: API uses page-based pagination (page parameter), not offset
+        // offset is converted to page for compatibility
+        page: params?.offset ? Math.floor(params.offset / (params?.limit ?? 20)) + 1 : undefined,
         status: params?.status,
         productType: params?.productType,
         externalId: params?.externalId,

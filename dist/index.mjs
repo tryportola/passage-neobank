@@ -332,7 +332,9 @@ var ApplicationsResource = class extends BaseResource {
       this.debug("applications.list", params);
       const response = await this.api.listApplications({
         limit: params?.limit,
-        offset: params?.offset,
+        // Note: API uses page-based pagination (page parameter), not offset
+        // offset is converted to page for compatibility
+        page: params?.offset ? Math.floor(params.offset / (params?.limit ?? 20)) + 1 : void 0,
         status: params?.status,
         productType: params?.productType,
         externalId: params?.externalId,
@@ -1340,7 +1342,7 @@ var WalletsResource = class extends BaseResource {
   async get(walletId) {
     return this.execute(async () => {
       this.debug("wallets.get", walletId);
-      const response = await this.api.getWallet({ id: walletId });
+      const response = await this.api.getWallet({ walletId });
       const data = unwrapResponse(response);
       return this.mapWallet(data);
     }, "wallets.get");
@@ -1393,7 +1395,7 @@ var WalletsResource = class extends BaseResource {
     return this.execute(async () => {
       this.debug("wallets.update", walletId);
       const response = await this.api.updateWallet({
-        id: walletId,
+        walletId,
         updateWalletRequest: {
           externalId: params.externalId,
           label: params.label,

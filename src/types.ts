@@ -5,6 +5,12 @@
  * additional types specific to the client wrapper.
  */
 
+// Import types used internally in this module
+import type {
+  BorrowerWallet as BorrowerWalletType,
+  HardPullConsent as HardPullConsentType,
+} from '@portola/passage';
+
 // ============================================================================
 // Re-export types from generated SDK
 // ============================================================================
@@ -34,9 +40,9 @@ export type {
   EncryptedOffersResponseData,
   EncryptedOffersLenderGroup,
   OfferAcceptanceRequest,
-  OfferAcceptanceRequestBorrowerWallet,
-  OfferAcceptanceRequestBorrowerWalletWalletTypeEnum,
-  OfferAcceptanceRequestHardPullConsent,
+  BorrowerWallet,
+  BorrowerWalletWalletTypeEnum,
+  HardPullConsent,
   OfferAcceptanceRequestCommunicationPreferences,
   OfferAcceptanceResponse,
   OfferAcceptanceResponseData,
@@ -150,17 +156,7 @@ export type WalletType =
 export type OfferTypeAlias =
   import('@portola/passage').OfferType;
 
-/**
- * Alias for OfferAcceptanceRequestBorrowerWallet
- */
-export type BorrowerWallet =
-  import('@portola/passage').OfferAcceptanceRequestBorrowerWallet;
-
-/**
- * Alias for OfferAcceptanceRequestHardPullConsent
- */
-export type HardPullConsent =
-  import('@portola/passage').OfferAcceptanceRequestHardPullConsent;
+// BorrowerWallet and HardPullConsent are now exported directly from @portola/passage above
 
 /**
  * Alias for OfferAcceptanceRequestCommunicationPreferences
@@ -245,14 +241,14 @@ export interface ApplicationCreateParams {
  */
 export interface PrequalAcceptParams {
   /** Required consent for credit check */
-  hardPullConsent: HardPullConsent;
+  hardPullConsent: HardPullConsentType;
   /** Borrower communication preferences */
   communicationPreferences?: CommunicationPreferences;
   /**
    * Borrower wallet for USDC disbursement
    * If not provided here, must be set when creating the application
    */
-  borrowerWallet?: BorrowerWallet;
+  borrowerWallet?: BorrowerWalletType;
   /** Borrower email for signing session (can also be provided at final acceptance) */
   borrowerEmail?: string;
   /** Borrower name for signing session (can also be provided at final acceptance) */

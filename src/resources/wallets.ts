@@ -240,7 +240,7 @@ export class WalletsResource extends BaseResource {
     return this.execute(async () => {
       this.debug('wallets.get', walletId);
 
-      const response = await this.api.getWallet({ id: walletId });
+      const response = await this.api.getWallet({ walletId });
       const data = unwrapResponse(response);
       return this.mapWallet(data);
     }, 'wallets.get');
@@ -307,7 +307,7 @@ export class WalletsResource extends BaseResource {
       this.debug('wallets.update', walletId);
 
       const response = await this.api.updateWallet({
-        id: walletId,
+        walletId,
         updateWalletRequest: {
           externalId: params.externalId,
           label: params.label,

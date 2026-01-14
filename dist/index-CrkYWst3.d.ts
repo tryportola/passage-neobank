@@ -1,5 +1,5 @@
 import * as _portola_passage from '@portola/passage';
-import { SigningApi, SDXApi, WalletsApi, WalletChain, WalletType as WalletType$1, Chain, WalletVerificationMethod, WalletVerificationStatus } from '@portola/passage';
+import { HardPullConsent, BorrowerWallet, SigningApi, SDXApi, WalletsApi, WalletChain, WalletType as WalletType$1, Chain, WalletVerificationMethod, WalletVerificationStatus } from '@portola/passage';
 import './types-CMifTZXy.js';
 
 /**
@@ -76,14 +76,6 @@ type EncryptedPIIPayload = _portola_passage.EncryptedPayload;
  * @see WalletOwnershipType - For wallet verification ownership type (different concept)
  */
 type WalletType = _portola_passage.WalletType;
-/**
- * Alias for OfferAcceptanceRequestBorrowerWallet
- */
-type BorrowerWallet = _portola_passage.OfferAcceptanceRequestBorrowerWallet;
-/**
- * Alias for OfferAcceptanceRequestHardPullConsent
- */
-type HardPullConsent = _portola_passage.OfferAcceptanceRequestHardPullConsent;
 /**
  * Alias for OfferAcceptanceRequestCommunicationPreferences
  */
@@ -261,6 +253,10 @@ interface Repayment {
     completedAt: string | null;
     status: string;
     createdAt: string;
+    /** @deprecated Use `sourceAddress` instead */
+    fromAddress?: string | null;
+    /** @deprecated Use `status` instead */
+    state?: string;
 }
 
 /**
@@ -1018,4 +1014,4 @@ declare class WalletsResource extends BaseResource {
     private mapWallet;
 }
 
-export { type ApplicationListParams as A, BaseResource as B, type CommunicationPreferences as C, type CreateWalletParams as D, type EncryptedPIIPayload as E, type FinalOfferAcceptParams as F, type ListWalletsParams as G, type HardPullConsent as H, type AOPPChallenge as I, type Verification as J, type VerificationSummary as K, type LoanListParams as L, type MessageSignChallenge as M, type VerificationResult as N, type OffersResponse as O, type PrequalAcceptParams as P, isAOPPChallenge as Q, type ResolvedConfig as R, SigningResource as S, isMessageSignChallenge as T, type UpdateWalletParams as U, type VerificationChallenge as V, type WebhookConfig as W, type ApplicationListItemType as X, type Application as a, type ApplicationCreateParams as b, type Repayment as c, type PaymentScheduleItem as d, type LenderListParams as e, type Lender as f, type AccountInfo as g, SDXResource as h, WalletsResource as i, type PassageClientConfig as j, type PaginationParams as k, type WalletType as l, type Offer as m, type LenderOffers as n, type BorrowerWallet as o, type SDXUploadToken as p, type SDXUploadResult as q, type SDXDocumentType as r, type SDXTokenParams as s, type SDXUploadParams as t, type SDXDownloadParams as u, type StoreKYCHandleParams as v, type SigningSession as w, type SigningSessionStatus as x, type SigningSessionCreateParams as y, type Wallet as z };
+export { type ApplicationListParams as A, BaseResource as B, type CommunicationPreferences as C, type ListWalletsParams as D, type EncryptedPIIPayload as E, type FinalOfferAcceptParams as F, type AOPPChallenge as G, type Verification as H, type VerificationSummary as I, type VerificationResult as J, isAOPPChallenge as K, type LoanListParams as L, type MessageSignChallenge as M, isMessageSignChallenge as N, type OffersResponse as O, type PrequalAcceptParams as P, type ApplicationListItemType as Q, type ResolvedConfig as R, SigningResource as S, type UpdateWalletParams as U, type VerificationChallenge as V, type WebhookConfig as W, type Application as a, type ApplicationCreateParams as b, type Repayment as c, type PaymentScheduleItem as d, type LenderListParams as e, type Lender as f, type AccountInfo as g, SDXResource as h, WalletsResource as i, type PassageClientConfig as j, type PaginationParams as k, type WalletType as l, type Offer as m, type LenderOffers as n, type SDXUploadToken as o, type SDXUploadResult as p, type SDXDocumentType as q, type SDXTokenParams as r, type SDXUploadParams as s, type SDXDownloadParams as t, type StoreKYCHandleParams as u, type SigningSession as v, type SigningSessionStatus as w, type SigningSessionCreateParams as x, type Wallet as y, type CreateWalletParams as z };
