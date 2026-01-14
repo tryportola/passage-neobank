@@ -1,5 +1,5 @@
-import { B as BaseResource, R as ResolvedConfig, A as ApplicationListParams, a as Application, b as ApplicationCreateParams, O as OffersResponse, P as PrequalAcceptParams, F as FinalOfferAcceptParams, L as LoanListParams, c as Repayment, d as PaymentScheduleItem, e as LenderListParams, f as Lender, g as AccountInfo, W as WebhookConfig, S as SigningResource, h as SDXResource, i as WalletsResource, j as PassageClientConfig } from './index-CrkYWst3.js';
-export { G as AOPPChallenge, C as CommunicationPreferences, z as CreateWalletParams, E as EncryptedPIIPayload, n as LenderOffers, D as ListWalletsParams, M as MessageSignChallenge, m as Offer, k as PaginationParams, q as SDXDocumentType, t as SDXDownloadParams, r as SDXTokenParams, s as SDXUploadParams, p as SDXUploadResult, o as SDXUploadToken, v as SigningSession, x as SigningSessionCreateParams, w as SigningSessionStatus, u as StoreKYCHandleParams, U as UpdateWalletParams, H as Verification, V as VerificationChallenge, J as VerificationResult, I as VerificationSummary, y as Wallet, l as WalletType, K as isAOPPChallenge, N as isMessageSignChallenge } from './index-CrkYWst3.js';
+import { B as BaseResource, R as ResolvedConfig, A as ApplicationListParams, a as Application, b as ApplicationCreateParams, O as OffersResponse, P as PrequalAcceptParams, F as FinalOfferAcceptParams, L as LoanListParams, c as Repayment, d as PaymentScheduleItem, e as LenderListParams, f as Lender, g as AccountInfo, W as WebhookConfig, S as SigningResource, h as SDXResource, i as WalletsResource, j as PassageClientConfig } from './index-CU_RpNC5.js';
+export { G as AOPPChallenge, C as CommunicationPreferences, z as CreateWalletParams, E as EncryptedPIIPayload, n as LenderOffers, D as ListWalletsParams, M as MessageSignChallenge, m as Offer, k as PaginationParams, q as SDXDocumentType, t as SDXDownloadParams, r as SDXTokenParams, s as SDXUploadParams, p as SDXUploadResult, o as SDXUploadToken, v as SigningSession, x as SigningSessionCreateParams, w as SigningSessionStatus, u as StoreKYCHandleParams, U as UpdateWalletParams, H as Verification, V as VerificationChallenge, J as VerificationResult, I as VerificationSummary, y as Wallet, l as WalletType, K as isAOPPChallenge, N as isMessageSignChallenge } from './index-CU_RpNC5.js';
 import * as _portola_passage from '@portola/passage';
 import { ApplicationsApi, ApplicationListItem, Pagination, ApplicationSubmitResponseData, ApplicationStatus, ApplicationStatusUpdateResponseData, OffersApi, OfferAcceptanceResponseData, FinalOfferAcceptanceResponseData, LoansApi, Loan, RepaymentStatus, EntityDiscoveryApi, NeobankSelfServiceApi, AccountStatsData, WebhookTestData, WebhookSecretRotateData } from '@portola/passage';
 export { AccountStatsData, ApplicationStatus, BorrowerWallet, Chain, EncryptedPayload as EncryptedPayloadInput, FinalOfferAcceptanceResponseData, HardPullConsent, KYCHandleData, KYCHandleRequest, KYCHandleResponse, KYCInitiateData, KYCInitiateResponse, KYCProvider, KYCProvidersData, KYCProvidersResponse, KYCStatus, KYCStatusAttestation, KYCStatusData, KYCStatusResponse, LenderPublicKeyResponse, Loan, LoanStatus, OfferAcceptanceResponseData, OfferType, Pagination, ProductType, WalletChain, WalletType as WalletOwnershipType, WalletVerificationMethod, WalletVerificationStatus } from '@portola/passage';
@@ -209,14 +209,20 @@ declare class OffersResource extends BaseResource {
      * This is the point of no return - the borrower commits to the loan terms.
      * Returns signing session details including the URL to redirect the borrower.
      *
-     * Note: hardPullConsent and borrowerWallet should have been provided when
-     * accepting the prequalified offer via acceptPrequal().
+     * All parameters are optional. You can provide wallet, consent, and
+     * communication preferences here even if already provided at prequal
+     * acceptance, allowing for updates or late additions.
      *
      * @example
      * ```typescript
      * const result = await passage.offers.acceptFinal(offerId, {
      *   borrowerEmail: 'borrower@example.com',
      *   borrowerName: 'John Doe',
+     *   // Optionally update wallet or provide if not set earlier
+     *   borrowerWallet: {
+     *     address: '0x1234...',
+     *     chain: 'base',
+     *   },
      * });
      *
      * // Redirect borrower to sign documents

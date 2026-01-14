@@ -1,6 +1,6 @@
 import * as _portola_passage from '@portola/passage';
 import { HardPullConsent, BorrowerWallet, SigningApi, SDXApi, WalletsApi, WalletChain, WalletType as WalletType$1, Chain, WalletVerificationMethod, WalletVerificationStatus } from '@portola/passage';
-import './types-CMifTZXy.mjs';
+import './types-CMifTZXy.js';
 
 /**
  * Configuration for the Passage SDK client
@@ -139,6 +139,16 @@ interface ApplicationCreateParams {
      * @deprecated Use walletId with verified wallet ownership instead
      */
     borrowerWalletChain?: 'base' | 'ethereum' | 'polygon' | 'arbitrum' | 'optimism' | 'solana';
+    /**
+     * KYC attestation data for the application
+     * Include attestation details when KYC has been performed externally
+     */
+    kycAttestation?: _portola_passage.KYCAttestation;
+    /**
+     * SDX document handle for KYC documents
+     * Use when KYC documents have been uploaded to SDX
+     */
+    kycDocumentHandle?: string;
 }
 /**
  * Parameters for accepting a prequalified offer
@@ -146,10 +156,16 @@ interface ApplicationCreateParams {
  * This triggers the lender to perform a hard credit pull.
  * Optionally, you can also provide borrower wallet info and
  * communication preferences at this stage.
+ *
+ * Note: hardPullConsent is optional at the API level but may be
+ * required by specific lenders. Check lender config for requirements.
  */
 interface PrequalAcceptParams {
-    /** Required consent for credit check */
-    hardPullConsent: HardPullConsent;
+    /**
+     * Consent for credit check (hard pull)
+     * Optional at API level, but may be required by specific lenders
+     */
+    hardPullConsent?: HardPullConsent;
     /** Borrower communication preferences */
     communicationPreferences?: CommunicationPreferences;
     /**
@@ -170,12 +186,33 @@ interface PrequalAcceptParams {
 }
 /**
  * Parameters for accepting a final offer
+ *
+ * All fields are optional. The API accepts wallet and consent info here
+ * even if already provided at prequal acceptance, allowing updates.
  */
 interface FinalOfferAcceptParams {
     /** Borrower email for signing session */
     borrowerEmail?: string;
     /** Borrower name for signing session */
     borrowerName?: string;
+    /**
+     * Hard pull consent (optional at final acceptance)
+     * Can be provided here if not already given at prequal acceptance
+     */
+    hardPullConsent?: HardPullConsent;
+    /** Borrower communication preferences */
+    communicationPreferences?: CommunicationPreferences;
+    /**
+     * Borrower wallet for USDC disbursement
+     * Can update/provide wallet info at final acceptance
+     */
+    borrowerWallet?: BorrowerWallet;
+    /** Requested disbursement details */
+    requestedDisbursement?: {
+        amount?: number;
+        method?: 'ach' | 'wire' | 'stablecoin';
+        destination?: string;
+    };
 }
 /**
  * Parameters for listing lenders

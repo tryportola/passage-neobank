@@ -142,6 +142,8 @@ export class ApplicationsResource extends BaseResource {
           walletId: params.walletId,
           borrowerWalletAddress: params.borrowerWalletAddress,
           borrowerWalletChain: params.borrowerWalletChain,
+          kycAttestation: params.kycAttestation,
+          kycDocumentHandle: params.kycDocumentHandle,
         },
       });
 

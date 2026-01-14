@@ -130,14 +130,20 @@ export class OffersResource extends BaseResource {
    * This is the point of no return - the borrower commits to the loan terms.
    * Returns signing session details including the URL to redirect the borrower.
    *
-   * Note: hardPullConsent and borrowerWallet should have been provided when
-   * accepting the prequalified offer via acceptPrequal().
+   * All parameters are optional. You can provide wallet, consent, and
+   * communication preferences here even if already provided at prequal
+   * acceptance, allowing for updates or late additions.
    *
    * @example
    * ```typescript
    * const result = await passage.offers.acceptFinal(offerId, {
    *   borrowerEmail: 'borrower@example.com',
    *   borrowerName: 'John Doe',
+   *   // Optionally update wallet or provide if not set earlier
+   *   borrowerWallet: {
+   *     address: '0x1234...',
+   *     chain: 'base',
+   *   },
    * });
    *
    * // Redirect borrower to sign documents
@@ -158,6 +164,10 @@ export class OffersResource extends BaseResource {
         finalOfferAcceptanceRequest: {
           borrowerEmail: params.borrowerEmail,
           borrowerName: params.borrowerName,
+          hardPullConsent: params.hardPullConsent,
+          communicationPreferences: params.communicationPreferences,
+          borrowerWallet: params.borrowerWallet,
+          requestedDisbursement: params.requestedDisbursement,
         },
       });
 

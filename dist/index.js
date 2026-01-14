@@ -12,7 +12,7 @@ var axios__default = /*#__PURE__*/_interopDefault(axios);
 // src/client.ts
 
 // package.json
-var version = "1.2.0";
+var version = "1.4.0";
 
 // src/config.ts
 var API_BASE_URL = "https://api.tryportola.com/api/v1";
@@ -411,7 +411,9 @@ var ApplicationsResource = class extends BaseResource {
           draft: params.draft,
           walletId: params.walletId,
           borrowerWalletAddress: params.borrowerWalletAddress,
-          borrowerWalletChain: params.borrowerWalletChain
+          borrowerWalletChain: params.borrowerWalletChain,
+          kycAttestation: params.kycAttestation,
+          kycDocumentHandle: params.kycDocumentHandle
         }
       });
       return unwrapResponse(response);
@@ -612,14 +614,20 @@ var OffersResource = class extends BaseResource {
    * This is the point of no return - the borrower commits to the loan terms.
    * Returns signing session details including the URL to redirect the borrower.
    *
-   * Note: hardPullConsent and borrowerWallet should have been provided when
-   * accepting the prequalified offer via acceptPrequal().
+   * All parameters are optional. You can provide wallet, consent, and
+   * communication preferences here even if already provided at prequal
+   * acceptance, allowing for updates or late additions.
    *
    * @example
    * ```typescript
    * const result = await passage.offers.acceptFinal(offerId, {
    *   borrowerEmail: 'borrower@example.com',
    *   borrowerName: 'John Doe',
+   *   // Optionally update wallet or provide if not set earlier
+   *   borrowerWallet: {
+   *     address: '0x1234...',
+   *     chain: 'base',
+   *   },
    * });
    *
    * // Redirect borrower to sign documents
@@ -635,7 +643,11 @@ var OffersResource = class extends BaseResource {
         offerId,
         finalOfferAcceptanceRequest: {
           borrowerEmail: params.borrowerEmail,
-          borrowerName: params.borrowerName
+          borrowerName: params.borrowerName,
+          hardPullConsent: params.hardPullConsent,
+          communicationPreferences: params.communicationPreferences,
+          borrowerWallet: params.borrowerWallet,
+          requestedDisbursement: params.requestedDisbursement
         }
       });
       return unwrapResponse(response);
